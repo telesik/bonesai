@@ -102,6 +102,7 @@ def is_block_start(line):
         line.startswith("```")
         or line.startswith("|")
         or line.startswith(">")
+        or line.startswith("![")
         or re.match(r"^#{1,6} ", line)
         or re.match(r"^[-*] ", line)
         or re.match(r"^\d+\.\s", line)
@@ -156,6 +157,25 @@ def md_to_html(md):
                 block.append(lines[i].lstrip(">").strip())
                 i += 1
             out.append(f"<blockquote>{inline(' '.join(block))}</blockquote>")
+            continue
+
+        # Изображение; следующая непустая строка целиком курсивом становится подписью
+        img = re.match(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$", line)
+        if img:
+            alt, src = img.group(1), img.group(2)
+            if not src.startswith(("http://", "https://", "file://")):
+                src = (ROOT / src).as_uri()
+            i += 1
+            caption = ""
+            j = i
+            while j < len(lines) and not lines[j].strip():
+                j += 1
+            if j < len(lines):
+                cap = re.match(r"^\*([^*].*)\*$", lines[j].strip())
+                if cap:
+                    caption = f"<figcaption>{inline(cap.group(1))}</figcaption>"
+                    i = j + 1
+            out.append(f'<figure><img src="{src}" alt="{html.escape(alt)}">{caption}</figure>')
             continue
 
         # Заголовок
@@ -214,7 +234,13 @@ h1, h2, h3, h4 {
 h1 { font-size: 19pt; margin-top: 0; }
 h2 { font-size: 14pt; border-bottom: 1px solid #d8d8d8; padding-bottom: 0.25em; }
 h3 { font-size: 11.5pt; }
-p, ul, ol, table, pre, blockquote { break-inside: avoid-page; }
+p, ul, ol, table, pre, blockquote, figure { break-inside: avoid-page; }
+/* Соседние figure встают в ряд — так два снимка сравниваются рядом, а не через страницу */
+figure { display: inline-block; width: 49%; vertical-align: top; margin: 0 0 1.1em;
+         text-align: center; }
+figure img { width: 100%; border: 1px solid #ddd; border-radius: 4px; }
+figcaption { font-size: 8pt; line-height: 1.45; color: #5a5a5a; font-style: italic;
+             margin: 0.45em 0 0; text-align: left; }
 p { margin: 0 0 0.75em; text-align: justify; }
 ul, ol { margin: 0 0 0.9em; padding-left: 1.4em; }
 li { margin-bottom: 0.3em; }
