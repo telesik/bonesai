@@ -27,7 +27,7 @@ are visible to both players, as in chess. The only source of chance is the face-
 
 - **[RULES.en.md](RULES.en.md)** — the complete two-player rules. No open questions remain; the
   rules are formalised to the point of being implementable. Includes the terminology, the diagrams
-  and a "Notes on balance" section covering the consequences of the mechanics.
+  and a “Notes on balance” section covering the consequences of the mechanics.
 - **[RULES.md](RULES.md)** — the same rules in Russian. **The Russian text is the primary version**;
   if the two ever disagree, the Russian one is correct.
 - **[IP.md](IP.md)** — rights, publication and proof of authorship: why game rules cannot be
@@ -38,11 +38,15 @@ are visible to both players, as in chess. The only source of chance is the face-
 
 **Alexey Kiselyov** and **Olga Popova**.
 
-Alexey came up with the game for his wife Olechka on the evening of 31 July 2026. The idea was to
-take out the excessive reliance on chance that ordinary dominoes has, without removing chance
-altogether — hence the open hands and the face-down boneyard as its only source. The rule allowing a
-double to be played straight was Olechka's: in the first version a double always closed the branch.
-See [RULES.en.md §14](RULES.en.md) for the full story.
+Alexey came up with the game for his beloved wife Olechka on the evening of 31 July 2026. The idea
+was to take out the excessive reliance on chance that ordinary dominoes has, without removing chance
+altogether — hence the open hands and the face-down boneyard as its only source.
+
+They sat down to play at once, and that same evening Olechka suggested allowing a double to be
+played straight — that gave the player a choice, and the rule became the main one. In the first
+version a double always closed the branch.
+
+The full story is in [RULES.en.md §14](RULES.en.md).
 
 ## Status
 
