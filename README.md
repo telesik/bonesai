@@ -30,9 +30,6 @@ are visible to both players, as in chess. The only source of chance is the face-
   and a “Notes on balance” section covering the consequences of the mechanics.
 - **[RULES.md](RULES.md)** — the same rules in Russian. **The Russian text is the primary version**;
   if the two ever disagree, the Russian one is correct.
-- **[IP.md](IP.md)** — rights, publication and proof of authorship: why game rules cannot be
-  patented, what is actually worth protecting, and the precedents found among existing domino games.
-  Russian only for now.
 
 ## Authors
 
