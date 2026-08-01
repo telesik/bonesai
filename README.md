@@ -1,59 +1,63 @@
-**Русский** · [English](README.en.md)
+**English** · [Русский](README.ru.md)
 
 # Bonesai
 
-Настольная игра на **обычном наборе домино** (28 костей, дубль-шесть) — но с совершенно другими
-правилами. Не классическое домино: цепочка по совпадающим половинкам, «козёл» и подсчёт по остаткам
-здесь не работают.
+A board game played with an **ordinary domino set** (28 tiles, double-six) — but under completely
+different rules. This is not conventional dominoes: matching halves into a single chain, the
+traditional blocking game and scoring off the leftovers all work differently here.
 
-Название — от *bones* (кости домино по-английски) и *bonsai*: дерево, которое одновременно
-выращивают и подрезают. Это и есть суть игры.
+The name comes from *bones* (what domino tiles are called) and *bonsai*: a tree that is grown and
+pruned at the same time. That is exactly what the game is about.
 
-## О чём игра
+## What the game is about
 
-Партия начинается с дубля — **корня**. От него растёт дерево: обычная кость, поставленная под 90°,
-создаёт **развилку** и добавляет новый открытый конец, а дубль, поставленный поперёк, **закрывает**
-ветку навсегда.
+A round begins with a double — the **root**. A tree grows from it: an ordinary tile played at 90°
+creates a **fork** and adds a new open end, while a double played crosswise **closes** a branch for
+good.
 
-Отсюда главный конфликт. Партия заканчивается, когда поставить кость не может никто, и очки
-получает тот, у кого на руках осталось больше. Поэтому игрок с лёгкой рукой душит партию
-закрытиями, а игрок с тяжёлой — ветвит и тянет время, чтобы успеть сбросить кости. Длина партии
-становится предметом прямой борьбы.
+That is where the central conflict comes from. A round ends when nobody can play a tile, and points
+go to whoever is left holding more. So a player with a light hand strangles the round with closures,
+while a player with a heavy one forks and stalls in order to shed tiles. The length of the round is
+fought over directly.
 
-Вторая особенность: **играют в открытую**. Кости лежат лицом вверх и видны обоим, как в шахматах.
-Единственный источник случайности — закрытый базар.
+The second distinctive feature: **the game is played with open hands**. The tiles lie face up and
+are visible to both players, as in chess. The only source of chance is the face-down boneyard.
 
-## Документы
+## Documents
 
-- **[RULES.md](RULES.md)** — полный свод правил игры вдвоём. Открытых вопросов нет, правила
-  формализованы до состояния, пригодного для реализации. Там же терминология, схемы и раздел
-  «Замечания к балансу» со следствиями механики.
-- **[RULES.en.md](RULES.en.md)** — те же правила по-английски. Русский текст первичен; при
-  расхождении верен он.
-- **[IP.md](IP.md)** — права, публикация и подтверждение авторства: почему правила игры не
-  патентуются, что защищать имеет смысл, и найденные аналоги в семействе домино-игр.
+- **[RULES.en.md](RULES.en.md)** — the complete two-player rules. No open questions remain; the
+  rules are formalised to the point of being implementable. Includes the terminology, the diagrams
+  and a "Notes on balance" section covering the consequences of the mechanics.
+- **[RULES.md](RULES.md)** — the same rules in Russian. **The Russian text is the primary version**;
+  if the two ever disagree, the Russian one is correct.
+- **[IP.md](IP.md)** — rights, publication and proof of authorship: why game rules cannot be
+  patented, what is actually worth protecting, and the precedents found among existing domino games.
+  Russian only for now.
 
-## Авторство
+## Authors
 
-Авторы — **Алексей Киселёв** и **Ольга Попова**.
+**Alexey Kiselyov** and **Olga Popova**.
 
-Игру придумал Алексей для своей жены Олечки вечером 31 июля 2026 года. Замысел — убрать из домино
-чрезмерную зависимость от случая, но не убирать случайность совсем: отсюда открытые руки и закрытый
-базар как единственный её источник. Правило постановки дубля прямо предложила Олечка — в первом
-варианте дубль всегда закрывал ветку. Подробнее — [RULES.md §14](RULES.md).
+Alexey came up with the game for his wife Olechka on the evening of 31 July 2026. The idea was to
+take out the excessive reliance on chance that ordinary dominoes has, without removing chance
+altogether — hence the open hands and the face-down boneyard as its only source. The rule allowing a
+double to be played straight was Olechka's: in the first version a double always closed the branch.
+See [RULES.en.md §14](RULES.en.md) for the full story.
 
-## Статус
+## Status
 
-Правила игры вдвоём завершены. Игра придумана вечером 31 июля 2026 года, в тот же вечер сыграно
-много партий вдвоём — она понравилась, поэтому правила и записаны. Это пока один вечер и два
-игрока: для выводов о балансе нужно больше партий и людей.
+The two-player rules are complete. The game was invented on the evening of 31 July 2026 and many
+rounds were played that same evening — we enjoyed it, which is why the rules were written down. That
+is still one evening and two players: drawing conclusions about the balance will take more rounds
+and more people.
 
-Дальше: стенд и цифровой прототип, затем расширение тестовой группы. Режим на 3+ игроков намеренно
-отложен до реализации игры на двоих.
+Next: a physical test setup and a digital prototype, then widening the test group. A mode for 3+
+players is deliberately deferred until the two-player game has been implemented.
 
-Название рабочее: свободность проверена по BoardGameGeek и GitHub, проверка по TMview ещё впереди.
+The name is a working title: it has been checked for conflicts on BoardGameGeek and GitHub, but not
+yet cleared through TMview.
 
-## Лицензия
+## Licence
 
-Текст правил и документация — [CC BY 4.0](LICENSE). Используйте и адаптируйте свободно,
-с указанием авторства.
+The text of the rules and the documentation are released under [CC BY 4.0](LICENSE). Use and adapt
+them freely, with attribution.
