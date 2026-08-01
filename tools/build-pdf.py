@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Собирает PDF правил Bonesai из RULES.md.
+"""Собирает PDF правил Bonesai из RULES.md и RULES.en.md.
 
-Использование:  python3 tools/build-pdf.py
-Результат:      build/bonesai-rules.pdf
+Использование:
+    python3 tools/build-pdf.py          — собрать обе версии
+    python3 tools/build-pdf.py ru       — только русскую
+    python3 tools/build-pdf.py en       — только английскую
+
+Результат: build/bonesai-rules.pdf и build/bonesai-rules-en.pdf
 
 Требуется установленный Google Chrome (используется headless-печать).
 Markdown конвертируется встроенным конвертером — внешних зависимостей нет.
@@ -10,7 +14,6 @@ Markdown конвертируется встроенным конвертеро�
 
 import html
 import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -19,19 +22,12 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "build"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
-# --- Метаданные публикации ---------------------------------------------------
-
 TITLE = "Bonesai"
-SUBTITLE = "Настольная игра на обычном наборе домино"
-TAGLINE = "Правила игры вдвоём"
-AUTHOR = "Alexey Kiselyov"
-AUTHOR_ALT = "Алексей Киселёв · Oleksii Kiselov"
-DATE = "1 августа 2026"
-VERSION = "Версия 1.0"
-LICENSE = "CC BY 4.0"
 LICENSE_URL = "https://creativecommons.org/licenses/by/4.0/"
 
-ABSTRACT = """
+# --- Метаданные публикации по языкам -----------------------------------------
+
+ABSTRACT_RU = """
 **Bonesai** — настольная игра для двоих на обычном наборе домино (28 костей, дубль-шесть).
 Дополнительных компонентов не требуется.
 
@@ -49,7 +45,25 @@ ABSTRACT = """
 в шахматах. Единственный источник случайности — закрытый базар.
 """
 
-APPENDIX = """
+ABSTRACT_EN = """
+**Bonesai** is a two-player board game played with an ordinary domino set (28 tiles, double-six).
+Nothing else is needed.
+
+The rules have nothing to do with conventional dominoes. A round begins with a double — the
+**root** — from which a tree grows. An ordinary tile played at 90° creates a **fork** and adds a
+new open end. A double played crosswise **closes** a branch for good.
+
+A round ends when nobody can play a tile (a “block”) or when a player plays their last tile.
+Points go to whoever is left holding more, and the first player to reach 100 loses the match.
+Hence the central conflict: a player with a light hand tries to cut the round short with closures,
+while a player with a heavy one stretches it out with forks in order to shed tiles. The length of
+the round is fought over directly.
+
+The second distinctive feature is **open hands**: both players’ tiles lie face up, like pieces in
+chess. The only source of chance is the face-down boneyard.
+"""
+
+APPENDIX_RU = """
 ## Приложение. Место в семействе домино-игр
 
 Bonesai принадлежит к семейству ветвящихся домино-игр — Pagat относит их к категории *tree games*.
@@ -76,6 +90,76 @@ Bonesai принадлежит к семейству ветвящихся дом
 - Contack (Parker Brothers, 1939) — https://en.wikipedia.org/wiki/Contack
 - Правила домино, вариант «закрывашка» — https://minigames.mail.ru/info/article/domino_pravila
 """
+
+APPENDIX_EN = """
+## Appendix. Where Bonesai sits among domino games
+
+Bonesai belongs to the family of branching domino games that Pagat classifies as *tree games*.
+Listed below are the known precedents for each mechanic and how Bonesai differs from them. None of
+these games matches Bonesai as a whole: what is original is not any single mechanic but the
+combination.
+
+| Mechanic | Precedent | How Bonesai differs |
+|---|---|---|
+| Branching, “trees” | Chicken Foot, Cross Dominoes, Sebastopol, Double Nine Cross, Mexican Train with branching | There it is the **double** (the spinner) that creates a branch. Here it is the other way round: an **ordinary tile** at 90° makes the fork, and the double **closes** the branch |
+| Closing a branch with a double | The Russian *zakryvashka*: whoever plays a double may turn it face down, after which nothing may be played on that side | Here this is not a privilege but a standard way of placing the tile (crosswise), plus the fresh-end restriction |
+| Open hands | Contack (Parker Brothers, 1939) — triangular tiles, hands held face up | No equivalent found using a standard domino set. The asymmetry on the first turn (first player open before the move, second player after) does not appear anywhere |
+| Playing to a threshold, whoever reaches it loses | The Russian *Kozyol* — played to 101 | Here it is 100; points go to the player with the **higher** total rather than the winner collecting the opponent’s; on equal totals both pay |
+| An expensive 0:0 | Chicken Foot — the 0-0 tile is always worth 50 points | Here it is 25, and only when it is the **last remaining** tile in hand |
+
+What looks original in Bonesai is this combination: an ordinary tile makes the fork while the double
+closes it (in the known tree games the branching element is the double); a fresh end is protected
+from being closed or forked again immediately; and the resulting fight over the length of the round,
+fork against closure.
+
+### Sources
+
+- Pagat, Domino Tree Games — https://www.pagat.com/domino/tree/
+- Pagat, Chicken Foot — https://www.pagat.com/domino/tree/chickenfoot.html
+- Contack (Parker Brothers, 1939) — https://en.wikipedia.org/wiki/Contack
+- Russian domino rules, the *zakryvashka* variant — https://minigames.mail.ru/info/article/domino_pravila
+"""
+
+LANGS = {
+    "ru": {
+        "src": "RULES.md",
+        "out": "bonesai-rules.pdf",
+        "html_lang": "ru",
+        "subtitle": "Настольная игра на обычном наборе домино",
+        "tagline": "Правила игры вдвоём",
+        "authors": "Алексей Киселёв · Ольга Попова",
+        "authors_alt": "Alexey Kiselyov · Olga Popova",
+        "date": "1 августа 2026",
+        "version": "Версия 1.0",
+        "license_line": "Лицензия",
+        "heading": "Bonesai — правила игры вдвоём",
+        "abstract_heading": "Аннотация",
+        "abstract": ABSTRACT_RU,
+        "appendix": APPENDIX_RU,
+        "license_note": "Документ опубликован под лицензией Creative Commons Attribution 4.0 "
+                        "International. Лицензия распространяется на текст и схемы; игровые "
+                        "механики как система объектом авторского права не являются.",
+    },
+    "en": {
+        "src": "RULES.en.md",
+        "out": "bonesai-rules-en.pdf",
+        "html_lang": "en",
+        "subtitle": "A board game played with an ordinary domino set",
+        "tagline": "Two-player rules",
+        "authors": "Alexey Kiselyov · Olga Popova",
+        "authors_alt": "Алексей Киселёв · Ольга Попова",
+        "date": "1 August 2026",
+        "version": "Version 1.0",
+        "license_line": "Licence",
+        "heading": "Bonesai — Two-player rules",
+        "abstract_heading": "Abstract",
+        "abstract": ABSTRACT_EN,
+        "appendix": APPENDIX_EN,
+        "license_note": "Published under the Creative Commons Attribution 4.0 International "
+                        "licence. The licence covers the text and the diagrams; the game "
+                        "mechanics as a system are not subject to copyright.",
+    },
+}
 
 # --- Минимальный конвертер Markdown -----------------------------------------
 
@@ -156,7 +240,8 @@ def md_to_html(md):
             while i < len(lines) and lines[i].startswith(">"):
                 block.append(lines[i].lstrip(">").strip())
                 i += 1
-            out.append(f"<blockquote>{inline(' '.join(block))}</blockquote>")
+            paras = "".join(f"<p>{inline(p.strip())}</p>" for p in " ".join(block).split("  ") if p.strip())
+            out.append(f"<blockquote>{paras or inline(' '.join(block))}</blockquote>")
             continue
 
         # Изображение; следующая непустая строка целиком курсивом становится подписью
@@ -197,7 +282,6 @@ def md_to_html(md):
                     break
                 item = [m.group(1)]
                 i += 1
-                # Продолжение пункта — строки с отступом
                 while i < len(lines) and lines[i].startswith("  ") and lines[i].strip():
                     item.append(lines[i].strip())
                     i += 1
@@ -256,7 +340,8 @@ blockquote {
   margin: 0 0 1em; padding: 0.6em 1em; background: #f7f7f5;
   border-left: 3px solid #b8b8b0; font-size: 0.95em;
 }
-blockquote p { margin: 0; }
+blockquote p { margin: 0 0 0.4em; }
+blockquote p:last-child { margin-bottom: 0; }
 table { border-collapse: collapse; width: 100%; margin: 0 0 1.1em; font-size: 9pt; }
 th, td { border: 1px solid #d8d8d8; padding: 0.45em 0.6em; text-align: left; vertical-align: top; }
 th { background: #f2f2f0; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -284,49 +369,47 @@ a { color: #1a1a1a; text-decoration: none; border-bottom: 1px solid #c4c4c4; }
 """
 
 
-def build():
-    rules = (ROOT / "RULES.md").read_text(encoding="utf-8")
-    # Первый заголовок и служебная сводка статуса в PDF не нужны — их заменяет титул
-    rules = re.sub(r"^# .*?\n", "", rules, count=1)
-    rules = re.sub(r"^>.*?(?=\n[^>])", "", rules, count=1, flags=re.S).lstrip()
+def build(lang):
+    cfg = LANGS[lang]
+    src = (ROOT / cfg["src"]).read_text(encoding="utf-8")
+    # Первый заголовок убираем — его заменяет титульный лист. Врезку со статусом оставляем.
+    body = re.sub(r"\A# .*?\n", "", src, count=1).lstrip("\n")
 
     page = f"""<!doctype html>
-<html lang="ru"><head><meta charset="utf-8">
-<title>{TITLE} — {TAGLINE}</title><style>{CSS}</style></head><body>
+<html lang="{cfg['html_lang']}"><head><meta charset="utf-8">
+<title>{TITLE} — {cfg['tagline']}</title><style>{CSS}</style></head><body>
 
 <section class="title-page">
   <div class="name">{TITLE}</div>
   <div class="rule"></div>
-  <div class="sub">{SUBTITLE}</div>
-  <div class="tag">{TAGLINE}</div>
-  <div class="author">{AUTHOR}</div>
-  <div class="author-alt">{AUTHOR_ALT}</div>
+  <div class="sub">{cfg['subtitle']}</div>
+  <div class="tag">{cfg['tagline']}</div>
+  <div class="author">{cfg['authors']}</div>
+  <div class="author-alt">{cfg['authors_alt']}</div>
   <div class="meta">
-    {DATE}<br>{VERSION}<br>
-    Лицензия <a href="{LICENSE_URL}">{LICENSE}</a>
+    {cfg['date']}<br>{cfg['version']}<br>
+    {cfg['license_line']} <a href="{LICENSE_URL}">CC BY 4.0</a>
   </div>
 </section>
 
 <section class="abstract">
-<h1>{TITLE} — {TAGLINE}</h1>
-<h2>Аннотация</h2>
-{md_to_html(ABSTRACT.strip())}
-<p class="doi-note">Документ опубликован под лицензией Creative Commons Attribution 4.0
-International. Лицензия распространяется на текст и схемы; игровые механики как система
-объектом авторского права не являются.</p>
+<h1>{cfg['heading']}</h1>
+<h2>{cfg['abstract_heading']}</h2>
+{md_to_html(cfg['abstract'].strip())}
+<p class="doi-note">{cfg['license_note']}</p>
 </section>
 
-{md_to_html(rules)}
+{md_to_html(body)}
 
 <section class="appendix">
-{md_to_html(APPENDIX.strip())}
+{md_to_html(cfg['appendix'].strip())}
 </section>
 
 </body></html>"""
 
     OUT_DIR.mkdir(exist_ok=True)
-    html_path = OUT_DIR / "bonesai-rules.html"
-    pdf_path = OUT_DIR / "bonesai-rules.pdf"
+    html_path = OUT_DIR / cfg["out"].replace(".pdf", ".html")
+    pdf_path = OUT_DIR / cfg["out"]
     html_path.write_text(page, encoding="utf-8")
 
     if not Path(CHROME).exists():
@@ -338,10 +421,13 @@ International. Лицензия распространяется на текст
          f"--print-to-pdf={pdf_path}", html_path.as_uri()],
         check=True, capture_output=True,
     )
-    print(f"Готово: {pdf_path.relative_to(ROOT)} ({pdf_path.stat().st_size // 1024} КБ)")
+    print(f"[{lang}] {pdf_path.relative_to(ROOT)} ({pdf_path.stat().st_size // 1024} КБ)")
 
 
 if __name__ == "__main__":
-    if shutil.which("python3") is None:
-        sys.exit("Нужен python3")
-    build()
+    requested = sys.argv[1:] or list(LANGS)
+    unknown = [x for x in requested if x not in LANGS]
+    if unknown:
+        sys.exit(f"Неизвестный язык: {', '.join(unknown)}. Доступны: {', '.join(LANGS)}")
+    for lang in requested:
+        build(lang)
