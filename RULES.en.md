@@ -7,6 +7,10 @@
 >
 > This is a translation. The Russian text in [RULES.md](RULES.md) is the primary version; if the
 > two ever disagree, the Russian one is correct.
+>
+> Published version 1.0, with a permanent identifier:
+> [10.5281/zenodo.21745035](https://doi.org/10.5281/zenodo.21745035). Please cite that.
+> The text in the repository may run ahead of it; those changes go into the next version.
 
 ## 1. Terminology
 
