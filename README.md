@@ -38,13 +38,13 @@ are visible to both players, as in chess. The only source of chance is the face-
 
 **Alexey Kiselyov** and **Olga Popova**.
 
-Alexey came up with the game for his beloved wife Olechka on the evening of 31 July 2026. The idea
-was to take out the excessive reliance on chance that ordinary dominoes has, without removing chance
-altogether — hence the open hands and the face-down boneyard as its only source.
+I made this game for my beloved wife Olechka on the evening of 31 July 2026. What bothered me about
+ordinary dominoes was how much rides on chance, yet I did not want to take chance out altogether —
+hence the open hands and the face-down boneyard as its only source.
 
-They sat down to play at once, and that same evening Olechka suggested allowing a double to be
-played straight — that gave the player a choice, and the rule became the main one. In the first
-version a double always closed the branch.
+I sketched the idea out quickly and we sat down to play at once. That same evening Olechka suggested
+allowing a double to be played straight — that gave the player a choice, and the rule became the
+main one. In the first version a double always closed the branch.
 
 The full story is in [RULES.en.md §14](RULES.en.md).
 
