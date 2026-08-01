@@ -58,6 +58,11 @@ players is deliberately deferred until the two-player game has been implemented.
 The name is a working title: it has been checked for conflicts on BoardGameGeek and GitHub, but not
 yet cleared through TMview.
 
+## Contact
+
+Questions about the rules, suggestions, or an offer of a game — Alexey on
+[LinkedIn](https://www.linkedin.com/in/alexey-kiselyov-80809416/).
+
 ## Licence
 
 The text of the rules and the documentation are released under [CC BY 4.0](LICENSE). Use and adapt
