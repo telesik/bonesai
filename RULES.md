@@ -1,12 +1,13 @@
 # Bonesai — Rules · Правила
 
-The complete rules of the game, in six languages.
-Полный свод правил игры на шести языках.
+The complete rules of the game, in seven languages.
+Полный свод правил игры на семи языках.
 
 - **English** — [RULES.en.md](docs/RULES.en.md)
 - **Русский** — [RULES.ru.md](docs/RULES.ru.md) *(первичный текст · primary text)*
 - **Español** — [RULES.es.md](docs/RULES.es.md)
 - **Deutsch** — [RULES.de.md](docs/RULES.de.md)
+- **Português (BR)** — [RULES.pt-BR.md](docs/RULES.pt-BR.md)
 - **Українська** — [RULES.uk.md](docs/RULES.uk.md)
 - **中文** — [RULES.zh.md](docs/RULES.zh.md)
 

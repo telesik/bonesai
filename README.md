@@ -15,6 +15,7 @@ A board game played with an ordinary domino set — under completely different r
 | **Русский** | [README.ru.md](docs/README.ru.md) | [RULES.ru.md](docs/RULES.ru.md) | [LICENSE.ru](docs/LICENSE.ru) |
 | **Español** | [README.es.md](docs/README.es.md) | [RULES.es.md](docs/RULES.es.md) | [LICENSE.es](docs/LICENSE.es) |
 | **Deutsch** | [README.de.md](docs/README.de.md) | [RULES.de.md](docs/RULES.de.md) | [LICENSE.de](docs/LICENSE.de) |
+| **Português (BR)** | [README.pt-BR.md](docs/README.pt-BR.md) | [RULES.pt-BR.md](docs/RULES.pt-BR.md) | [LICENSE.pt-BR](docs/LICENSE.pt-BR) |
 | **Українська** | [README.uk.md](docs/README.uk.md) | [RULES.uk.md](docs/RULES.uk.md) | [LICENSE.uk](docs/LICENSE.uk) |
 | **中文** | [README.zh.md](docs/README.zh.md) | [RULES.zh.md](docs/RULES.zh.md) | [LICENSE.zh](docs/LICENSE.zh) |
 

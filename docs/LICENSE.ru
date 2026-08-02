@@ -21,7 +21,8 @@ Creative Commons Attribution 4.0 International (CC BY 4.0).
   https://creativecommons.org/licenses/by/4.0/deed.ru
 
 Другие языки: LICENSE.en (English), LICENSE.es (Español), LICENSE.de (Deutsch),
-LICENSE.zh (中文), LICENSE.uk (Українська); список — в файле LICENSE.md в корне репозитория.
+LICENSE.pt-BR (Português BR), LICENSE.zh (中文), LICENSE.uk (Українська);
+список — в файле LICENSE.md в корне репозитория.
 
 Примечание о предмете лицензии. Лицензия распространяется на текст правил, схемы и документацию —
 то есть на конкретное выражение. Сами игровые механики и правила как система не являются объектом

@@ -1,4 +1,4 @@
-[English](README.en.md) · [Русский](README.ru.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Українська](README.uk.md) · **中文**
+[English](README.en.md) · [Русский](README.ru.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Português (BR)](README.pt-BR.md) · [Українська](README.uk.md) · **中文**
 
 # Bonesai
 

@@ -12,5 +12,6 @@ Full notice by language:
 - **Русский** — [LICENSE.ru](docs/LICENSE.ru)
 - **Español** — [LICENSE.es](docs/LICENSE.es)
 - **Deutsch** — [LICENSE.de](docs/LICENSE.de)
+- **Português (BR)** — [LICENSE.pt-BR](docs/LICENSE.pt-BR)
 - **Українська** — [LICENSE.uk](docs/LICENSE.uk)
 - **中文** — [LICENSE.zh](docs/LICENSE.zh)

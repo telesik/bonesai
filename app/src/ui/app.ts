@@ -41,14 +41,13 @@ const LS_UI_KEY = 'bonesai-ui-v1';
  *  DOI 10.5281/zenodo.21745035). */
 const RULES_VERSION = '1.0';
 
-/** Полный текст правил по языку интерфейса; перевода pt-BR у документов пока нет,
- *  поэтому португальская локаль ведёт на английскую версию. */
+/** Полный текст правил по языку интерфейса. */
 const RULES_DOC_LANG: Record<Locale, string> = {
   ru: 'ru',
   en: 'en',
   es: 'es',
   de: 'de',
-  pt: 'en',
+  pt: 'pt-BR',
   uk: 'uk',
   zh: 'zh',
 };
