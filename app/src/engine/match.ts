@@ -2,7 +2,14 @@
 
 import { seedFromCrypto, type RngState } from './rng';
 import { newRound } from './rules';
+import type { BotLevel } from './bot';
 import type { GameState, Move, RoundResult, Variant } from './state';
+
+/** За какую сторону и с какой силой играет бот. */
+export interface BotSeat {
+  readonly player: 0 | 1;
+  readonly level: BotLevel;
+}
 
 export interface FinishedRound extends RoundResult {
   /** Кто был первым игроком в этой партии. */
@@ -26,6 +33,8 @@ export interface MatchState {
   readonly first: 0 | 1;
   readonly round: GameState;
   readonly outcome: MatchOutcome | null;
+  /** Бот за одной из сторон; null/отсутствует — hot-seat двух людей. */
+  readonly bot?: BotSeat | null;
 }
 
 export interface StartMatchOptions {
@@ -34,6 +43,7 @@ export interface StartMatchOptions {
   readonly first: 0 | 1;
   readonly variant: Variant;
   readonly seed?: RngState;
+  readonly bot?: BotSeat | null;
 }
 
 export function startMatch(opts: StartMatchOptions): MatchState {
@@ -46,6 +56,7 @@ export function startMatch(opts: StartMatchOptions): MatchState {
     first: opts.first,
     round: newRound({ seed, first: opts.first, variant: opts.variant }),
     outcome: null,
+    bot: opts.bot ?? null,
   };
 }
 

@@ -116,6 +116,16 @@ export function placementsForTile(state: GameState, tile: TileId): Move[] {
 
 export function applyMove(state: GameState, move: Move): GameState {
   assertLegal(state, move);
+  return applyMoveTrusted(state, move);
+}
+
+/**
+ * applyMove без проверки легальности — для перебора бота, где ходы и так
+ * берутся из legalMoves. relayout=false дополнительно пропускает перекладку
+ * веток: раскладка на правила не влияет (§6.3), а в переборе она только
+ * жгла бы бюджет. Нелегальный ход здесь — неопределённое поведение.
+ */
+export function applyMoveTrusted(state: GameState, move: Move, relayout = true): GameState {
   const next = ((): GameState => {
     switch (move.type) {
       case 'placeRoot':
@@ -131,7 +141,7 @@ export function applyMove(state: GameState, move: Move): GameState {
   // Протокол: каждый применённый ход дописывается в историю партии.
   const withHistory: GameState = { ...next, history: [...state.history, move] };
   // Наложение веток — повод переложить стол (§6.3: раскладка правилам безразлична).
-  if (move.type === 'place' || move.type === 'placeRoot') {
+  if (relayout && (move.type === 'place' || move.type === 'placeRoot')) {
     return resolveOverlaps(withHistory);
   }
   return withHistory;
