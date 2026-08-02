@@ -161,6 +161,31 @@ body {
   border-color: var(--gold);
 }
 
+/* Выключенный звук: нота под перечёркнутым кругом. */
+#btn-sound {
+  position: relative;
+}
+
+#btn-sound.muted {
+  color: var(--muted);
+}
+
+#btn-sound.muted::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1.7px solid rgba(194, 84, 58, 0.85);
+  border-radius: 50%;
+  background: linear-gradient(
+    to top right,
+    transparent 45%,
+    rgba(194, 84, 58, 0.85) 46.5%,
+    rgba(194, 84, 58, 0.85) 53.5%,
+    transparent 55%
+  );
+  pointer-events: none;
+}
+
 .lang-select {
   appearance: none;
   background: var(--panel-2);

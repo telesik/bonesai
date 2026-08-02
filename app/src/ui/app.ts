@@ -1133,12 +1133,13 @@ export function initApp(): void {
     persistUi();
   });
 
+  // Выключенный звук — та же нота, но под перечёркнутым кругом (класс muted).
   const elBtnSound = $('#btn-sound');
   elBtnSound.addEventListener('click', () => {
     soundOn = !soundOn;
     setSoundEnabled(soundOn);
     elBtnSound.classList.toggle('active', soundOn);
-    elBtnSound.textContent = soundOn ? '♪' : '♩';
+    elBtnSound.classList.toggle('muted', !soundOn);
     persistUi();
     if (soundOn) playPlace('straight');
   });
@@ -1177,7 +1178,7 @@ export function initApp(): void {
   applyStaticTexts();
   elBtnFit.classList.toggle('active', autoFitOn);
   elBtnSound.classList.toggle('active', soundOn);
-  elBtnSound.textContent = soundOn ? '♪' : '♩';
+  elBtnSound.classList.toggle('muted', !soundOn);
   board.setAutoFit(autoFitOn, false);
 
   try {
