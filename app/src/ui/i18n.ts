@@ -927,12 +927,12 @@ export function setLocale(locale: Locale): void {
   current = locale;
 }
 
-/** Подобрать стартовый язык по настройке браузера. */
+/** Подобрать стартовый язык по настройке браузера; для прочих языков — английский. */
 export function detectLocale(preferred?: string | null): Locale {
   if (preferred && preferred in DICTS) return preferred as Locale;
-  const nav = (navigator.language || 'ru').toLowerCase();
+  const nav = (navigator.language || 'en').toLowerCase();
   for (const { code } of LOCALES) {
     if (nav.startsWith(code)) return code;
   }
-  return 'ru';
+  return 'en';
 }
