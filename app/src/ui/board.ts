@@ -41,8 +41,14 @@ export interface BoardRenderOptions {
 
 const MIN_W = CELL * 5;
 const MAX_W = CELL * 44;
-/** Минимальная ширина кадра автоподгонки: в начале партии стол видно «издалека». */
-const FIT_MIN_W = CELL * 18;
+/**
+ * Минимальная ширина кадра автоподгонки: в начале партии стол видно
+ * «издалека». На узких (мобильных) экранах кадр ближе, иначе кости
+ * становятся нечитаемо мелкими.
+ */
+function fitMinW(viewportWidth: number): number {
+  return viewportWidth < 700 ? CELL * 11 : CELL * 18;
+}
 
 export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
   let vb: ViewBox = { x: -CELL * 9, y: -CELL * 5, w: CELL * 18, h: CELL * 10 };
@@ -113,7 +119,7 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
       minY -= (h2 - h) / 2 / CELL;
       h = h2;
     }
-    const scale = Math.max(1, FIT_MIN_W / w);
+    const scale = Math.max(1, fitMinW(rect.width || 1280) / w);
     if (scale > 1) {
       // Раздвигаем кадр вокруг центра, сохраняя аспект.
       minX -= (w * (scale - 1)) / 2 / CELL;

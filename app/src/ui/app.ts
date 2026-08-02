@@ -76,7 +76,6 @@ export function initApp(): void {
   const elRoundChip = $('#round-chip');
   const elStatusEvent = $('#status-event');
   const elStatusPrompt = $('#status-prompt');
-  const elScoreChips = $('#score-chips');
   const elHandTop = $('#hand-top');
   const elHandBottom = $('#hand-bottom');
   const elBoneyard = $('#boneyard');
@@ -110,21 +109,26 @@ export function initApp(): void {
   }
   let replay: { data: ReplayData; roundIdx: number; step: number } | null = null;
   let replayLastKey = '';
+  // Ключ последней автопрокрутки руки — прокручиваем один раз на ход.
+  let handAutoScrollKey = '';
 
   // Настройки вида (переживают перезагрузку).
   let markOwners = false;
   let autoFitOn = true;
   let soundOn = false;
+  let handsVertical = true;
   try {
     const prefs = JSON.parse(localStorage.getItem(LS_UI_KEY) ?? '{}') as {
       markOwners?: boolean;
       autoFit?: boolean;
       sound?: boolean;
       locale?: string;
+      handsVertical?: boolean;
     };
     markOwners = !!prefs.markOwners;
     autoFitOn = prefs.autoFit !== false;
     soundOn = !!prefs.sound;
+    handsVertical = prefs.handsVertical !== false;
     setLocale(detectLocale(prefs.locale ?? null));
   } catch {
     setLocale(detectLocale(null));
@@ -135,7 +139,13 @@ export function initApp(): void {
     try {
       localStorage.setItem(
         LS_UI_KEY,
-        JSON.stringify({ markOwners, autoFit: autoFitOn, sound: soundOn, locale: getLocale() }),
+        JSON.stringify({
+          markOwners,
+          autoFit: autoFitOn,
+          sound: soundOn,
+          locale: getLocale(),
+          handsVertical,
+        }),
       );
     } catch {
       /* ignore */
@@ -342,15 +352,6 @@ export function initApp(): void {
     elRoundChip.textContent = L().roundChip(
       match.rounds.length + (round.phase === 'over' ? 0 : 1),
     );
-    const chips = ([0, 1] as const)
-      .map((p) => {
-        const turn = round.phase !== 'over' && round.current === p;
-        return `<span class="score-chip p${p} ${turn ? 'turn' : ''}">${esc(nameOf(p))} <b>${
-          match!.totals[p]
-        }</b></span>`;
-      })
-      .join('<span class="vs">·</span>');
-    elScoreChips.innerHTML = chips;
     const { event, prompt } = statusTexts(round);
     elStatusEvent.textContent = event;
     elStatusPrompt.innerHTML = prompt;
@@ -448,13 +449,18 @@ export function initApp(): void {
         ? lastLog.tile
         : null;
 
+    // Общий счёт матча — бейджем у имени (в шапке ему тесно на мобильных).
+    const totalChip =
+      !view && match
+        ? `<span class="total-chip" data-tip="${L().tipTotal}">${match.totals[player]}</span>`
+        : '';
     const meta = `
       <div class="hand-meta">
         <div class="hand-name">${
           isActive ? `<span class="turn-mark" title="${L().turnMarkTitle}">☞</span>` : ''
         }${
           round.first === player ? `<span class="first-chip">${L().firstChip}</span>` : ''
-        }${esc(name)}</div>
+        }${esc(name)}${totalChip}</div>
         <div class="hand-sum">${
           hidden ? L().handMetaHidden(hand.length) : L().handMeta(hand.length, handSum(hand))
         }</div>
@@ -478,12 +484,40 @@ export function initApp(): void {
         // ней всё равно невозможны, а инспектор браузера не должен подсматривать.
         const attrs = hidden || view ? '' : ` data-player="${player}" data-tile="${t}"`;
         return `<div class="${cls}"${attrs}>
-          ${tileSvgElement(inner, 88)}
+          ${tileSvgElement(inner, 86, { vertical: handsVertical })}
         </div>`;
       })
       .join('');
 
+    const prevScroll = el.querySelector<HTMLElement>('.hand-tiles')?.scrollLeft ?? 0;
     el.innerHTML = `${meta}<div class="hand-tiles">${tiles}</div>`;
+
+    // Перерисовка не должна сбрасывать ручную прокрутку руки…
+    const cont = el.querySelector<HTMLElement>('.hand-tiles');
+    if (cont) {
+      cont.scrollLeft = prevScroll;
+      // …а в начале своего хода рука мягко подъезжает к первой играбельной
+      // кости, если та за краем (актуально для раздутых рук — добор §8).
+      if (!view && isActive && playable.size > 0) {
+        const key = `${match ? match.rounds.length : 0}:${round.log.length}:${player}`;
+        if (handAutoScrollKey !== key) {
+          handAutoScrollKey = key;
+          const first = cont.querySelector<HTMLElement>('.hand-tile.playable');
+          if (first) {
+            const x =
+              first.getBoundingClientRect().left -
+              cont.getBoundingClientRect().left +
+              cont.scrollLeft;
+            const fits =
+              x >= cont.scrollLeft + 4 &&
+              x + first.offsetWidth <= cont.scrollLeft + cont.clientWidth - 4;
+            if (!fits) {
+              cont.scrollTo({ left: Math.max(0, x - 28), behavior: 'smooth' });
+            }
+          }
+        }
+      }
+    }
   }
 
   function renderBoneyard(round: GameState, legal: readonly Move[]): void {
@@ -595,14 +629,6 @@ export function initApp(): void {
 
     elBtnHist.classList.add('active');
     elRoundChip.textContent = L().viewChip(rp.roundIdx + 1, rp.data.rounds.length);
-    elScoreChips.innerHTML = ([0, 1] as const)
-      .map(
-        (p) =>
-          `<span class="score-chip p${p} ${mover === p ? 'turn' : ''}">${esc(
-            rp.data.names[p],
-          )}</span>`,
-      )
-      .join('<span class="vs">·</span>');
     elStatusEvent.textContent = rp.data.external ? L().historyExternal : L().historyLive;
     elStatusPrompt.innerHTML =
       rp.step === 0
@@ -1144,6 +1170,15 @@ export function initApp(): void {
     if (soundOn) playPlace('straight');
   });
 
+  // Ориентация костей в руке: вертикально (по умолчанию) или горизонтально.
+  const elBtnOrient = $('#btn-orient');
+  elBtnOrient.addEventListener('click', () => {
+    handsVertical = !handsVertical;
+    elBtnOrient.textContent = handsVertical ? '▯' : '▭';
+    persistUi();
+    renderAll();
+  });
+
   elBtnNew.addEventListener('click', () => {
     if (match && !match.outcome) {
       if (!window.confirm(L().confirmNewMatch)) return;
@@ -1160,14 +1195,16 @@ export function initApp(): void {
     elBtnHist.dataset.tip = L().tipHistory;
     elBtnMark.dataset.tip = L().tipMark;
     elBtnFit.dataset.tip = L().tipFit;
+    elBtnOrient.dataset.tip = L().tipOrient;
     elBtnSound.dataset.tip = L().tipSound;
     elBtnNew.dataset.tip = L().tipNew;
     const langSel = document.querySelector<HTMLSelectElement>('#lang-select');
     if (langSel) {
+      // В шапке — компактные коды (ru, en, …); полные названия — на старте.
       langSel.dataset.tip = L().tipLang;
       langSel.innerHTML = LOCALES.map(
-        ({ code, label }) =>
-          `<option value="${code}" ${code === getLocale() ? 'selected' : ''}>${label}</option>`,
+        ({ code }) =>
+          `<option value="${code}" ${code === getLocale() ? 'selected' : ''}>${code}</option>`,
       ).join('');
     }
     updateBadge();
@@ -1179,6 +1216,7 @@ export function initApp(): void {
   elBtnFit.classList.toggle('active', autoFitOn);
   elBtnSound.classList.toggle('active', soundOn);
   elBtnSound.classList.toggle('muted', !soundOn);
+  elBtnOrient.textContent = handsVertical ? '▯' : '▭';
   board.setAutoFit(autoFitOn, false);
 
   try {

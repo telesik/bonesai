@@ -149,17 +149,24 @@ export function bonsaiEmblem(cx: number, cy: number, s: number): string {
 
 /**
  * Обёртка: кость (лицо или рубашка) как самостоятельный маленький <svg>
- * для рук и базара. w — ширина по длинной стороне в px.
+ * для рук и базара. w — размер по длинной стороне в px; vertical ставит
+ * кость стоймя (длинная сторона вертикальна).
  * Градиенты и фильтры берутся из общего скрытого <svg> с tileDefs():
  * id в SVG глобальны на документ, дублировать defs не нужно.
  */
 export function tileSvgElement(
   inner: string,
   w: number,
-  opts: { extraClass?: string } = {},
+  opts: { extraClass?: string; vertical?: boolean } = {},
 ): string {
   const h = (w * TILE_W) / TILE_L;
   const pad = 8;
+  if (opts.vertical) {
+    const vb = `${-TILE_W / 2 - pad} ${-TILE_L / 2 - pad} ${TILE_W + pad * 2} ${TILE_L + pad * 2}`;
+    return `<svg class="tile-svg ${opts.extraClass ?? ''}" width="${h}" height="${w}" viewBox="${vb}">
+      <g transform="rotate(90)">${inner}</g>
+    </svg>`;
+  }
   const vb = `${-TILE_L / 2 - pad} ${-TILE_W / 2 - pad} ${TILE_L + pad * 2} ${TILE_W + pad * 2}`;
   return `<svg class="tile-svg ${opts.extraClass ?? ''}" width="${w}" height="${h}" viewBox="${vb}">
     ${inner}
