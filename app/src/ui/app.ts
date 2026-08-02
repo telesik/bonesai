@@ -37,9 +37,9 @@ import { tileBack, tileDefs, tileFace, tileSvgElement } from './tile-svg';
 const LS_KEY = 'bonesai-match-v1';
 const LS_UI_KEY = 'bonesai-ui-v1';
 
-/** Версия правил, которую реализует прототип, и постоянная ссылка на них. */
+/** Версия правил, которую реализует прототип (опубликована на Zenodo,
+ *  DOI 10.5281/zenodo.21745035). */
 const RULES_VERSION = '1.0';
-const RULES_URL = 'https://doi.org/10.5281/zenodo.21745035';
 
 /** Полный текст правил по языку интерфейса; перевода pt-BR у документов пока нет,
  *  поэтому португальская локаль ведёт на английскую версию. */
@@ -83,7 +83,7 @@ export function initApp(): void {
   function updateBadge(): void {
     const appVersion = __APP_VERSION__.split('.').slice(0, 2).join('.');
     badge.innerHTML =
-      `${L().versionWord} ${appVersion} (<a href="${RULES_URL}" target="_blank" rel="noopener">` +
+      `${L().versionWord} ${appVersion} (<a href="${rulesDocUrl()}" target="_blank" rel="noopener">` +
       `${L().rulesWord(RULES_VERSION)}</a>, hashCommit=${__GIT_HASH__})`;
   }
 
