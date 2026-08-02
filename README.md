@@ -11,11 +11,11 @@ A board game played with an ordinary domino set — under completely different r
 
 | | README | Rules · Правила | Licence · Лицензия |
 |---|---|---|---|
-| **English** | [README.en.md](README.en.md) | [RULES.en.md](RULES.en.md) | [LICENSE.en](LICENSE.en) |
-| **Русский** | [README.ru.md](README.ru.md) | [RULES.ru.md](RULES.ru.md) | [LICENSE.ru](LICENSE.ru) |
-| **Español** | [README.es.md](README.es.md) | [RULES.es.md](RULES.es.md) | [LICENSE.es](LICENSE.es) |
-| **Deutsch** | [README.de.md](README.de.md) | [RULES.de.md](RULES.de.md) | [LICENSE.de](LICENSE.de) |
-| **Українська** | [README.uk.md](README.uk.md) | [RULES.uk.md](RULES.uk.md) | [LICENSE.uk](LICENSE.uk) |
-| **中文** | [README.zh.md](README.zh.md) | [RULES.zh.md](RULES.zh.md) | [LICENSE.zh](LICENSE.zh) |
+| **English** | [README.en.md](docs/README.en.md) | [RULES.en.md](docs/RULES.en.md) | [LICENSE.en](docs/LICENSE.en) |
+| **Русский** | [README.ru.md](docs/README.ru.md) | [RULES.ru.md](docs/RULES.ru.md) | [LICENSE.ru](docs/LICENSE.ru) |
+| **Español** | [README.es.md](docs/README.es.md) | [RULES.es.md](docs/RULES.es.md) | [LICENSE.es](docs/LICENSE.es) |
+| **Deutsch** | [README.de.md](docs/README.de.md) | [RULES.de.md](docs/RULES.de.md) | [LICENSE.de](docs/LICENSE.de) |
+| **Українська** | [README.uk.md](docs/README.uk.md) | [RULES.uk.md](docs/RULES.uk.md) | [LICENSE.uk](docs/LICENSE.uk) |
+| **中文** | [README.zh.md](docs/README.zh.md) | [RULES.zh.md](docs/RULES.zh.md) | [LICENSE.zh](docs/LICENSE.zh) |
 
-Licence: [CC BY 4.0](LICENSE) · Authors / авторы: **Alexey Kiselyov, Olga Popova**.
+Licence: [CC BY 4.0](LICENSE.md) · Authors / авторы: **Alexey Kiselyov, Olga Popova**.

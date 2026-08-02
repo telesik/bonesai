@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Собирает PDF правил Bonesai из RULES.ru.md и RULES.en.md.
+"""Собирает PDF правил Bonesai из docs/RULES.ru.md и docs/RULES.en.md.
 
 Использование:
     python3 tools/build-pdf.py          — собрать обе версии
@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+DOCS = ROOT / "docs"  # исходники правил и картинки лежат в docs/
 OUT_DIR = ROOT / "build"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
@@ -122,7 +123,7 @@ fork against closure.
 
 LANGS = {
     "ru": {
-        "src": "RULES.ru.md",
+        "src": "docs/RULES.ru.md",
         "out": "bonesai-rules.pdf",
         "html_lang": "ru",
         "subtitle": "Настольная игра на обычном наборе домино",
@@ -141,7 +142,7 @@ LANGS = {
                         "механики как система объектом авторского права не являются.",
     },
     "en": {
-        "src": "RULES.en.md",
+        "src": "docs/RULES.en.md",
         "out": "bonesai-rules-en.pdf",
         "html_lang": "en",
         "subtitle": "A board game played with an ordinary domino set",
@@ -249,7 +250,8 @@ def md_to_html(md):
         if img:
             alt, src = img.group(1), img.group(2)
             if not src.startswith(("http://", "https://", "file://")):
-                src = (ROOT / src).as_uri()
+                # Пути картинок в маркдауне — относительно docs/
+                src = (DOCS / src).as_uri()
             i += 1
             caption = ""
             j = i

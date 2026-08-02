@@ -160,11 +160,11 @@ half running along the straight branch, or set off to the side straight away. Th
 difference to the rules — either way you get the same two ends, straight and fork. Choose whichever
 suits the space on your table and keeps the branches clear of one another.
 
-![The forking tile 6:1 set flush with the row](docs/img/turn-inline.jpg)
+![The forking tile 6:1 set flush with the row](img/turn-inline.jpg)
 
 *Option 1: the 6:1 tile is set flush with the row — its “6” half runs along the straight branch.*
 
-![The same 6:1 tile set off to the side and shifted down](docs/img/turn-sideways.jpg)
+![The same 6:1 tile set off to the side and shifted down](img/turn-sideways.jpg)
 
 *Option 2: the same 6:1 tile shifted down and set off to the side. The play and the resulting ends are identical — only the table layout differs.*
 

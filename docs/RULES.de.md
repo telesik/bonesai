@@ -169,12 +169,12 @@ seitlich versetzt. Auf die Regeln hat das keinen Einfluss — in beiden Fällen 
 zwei Enden, das gerade und das Abzweig-Ende. Wählen Sie nach dem Platz auf dem Tisch, damit die
 Zweige einander nicht in die Quere kommen.
 
-![Der abgezweigte Stein 6:1, bündig mit der Reihe angelegt](docs/img/turn-inline.jpg)
+![Der abgezweigte Stein 6:1, bündig mit der Reihe angelegt](img/turn-inline.jpg)
 
 *Möglichkeit 1: Der Stein 6:1 ist bündig mit der Reihe angelegt — seine Hälfte „6“ verläuft in
 Richtung des geraden Zweiges.*
 
-![Derselbe Stein 6:1, seitlich angelegt und nach unten versetzt](docs/img/turn-sideways.jpg)
+![Derselbe Stein 6:1, seitlich angelegt und nach unten versetzt](img/turn-sideways.jpg)
 
 *Möglichkeit 2: Derselbe Stein 6:1 ist nach unten versetzt und gleich seitlich angelegt. Der Zug ist derselbe und die Enden sind dieselben — nur die Anordnung auf dem Tisch unterscheidet sich.*
 

@@ -167,11 +167,11 @@ que la mitad unida siga la dirección de la rama recta, o desviada hacia el lado
 Esto no afecta a las reglas — en ambos casos resultan los mismos dos extremos, el recto y el de
 giro. Elija según el espacio en la mesa, para que las ramas no se estorben entre sí.
 
-![La ficha girada 6:1 acoplada a ras de la fila](docs/img/turn-inline.jpg)
+![La ficha girada 6:1 acoplada a ras de la fila](img/turn-inline.jpg)
 
 *Modo 1: la ficha 6:1 acoplada a ras de la fila — su mitad «6» sigue la dirección de la rama recta.*
 
-![La misma ficha 6:1 acoplada de lado, desplazada hacia abajo](docs/img/turn-sideways.jpg)
+![La misma ficha 6:1 acoplada de lado, desplazada hacia abajo](img/turn-sideways.jpg)
 
 *Modo 2: la misma ficha 6:1 desplazada hacia abajo y acoplada directamente de lado. La jugada es la misma y los extremos son los mismos — solo cambia la disposición sobre la mesa.*
 
