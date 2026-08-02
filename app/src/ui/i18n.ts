@@ -29,6 +29,7 @@ const ru = {
   tagline:
     'Домино, в котором дерево растят и подрезают. Руки открыты, как в шахматах; ' +
     'единственная случайность — закрытый базар. Ходят по очереди за одним экраном.',
+  linkRules: 'Правила игры',
   fieldBottom: 'Нижний игрок',
   fieldTop: 'Верхний игрок',
   fieldLang: 'Язык',
@@ -207,6 +208,7 @@ const en: Dict = {
   tagline:
     'Dominoes where you grow and prune a tree. Hands are open like in chess; ' +
     'the only randomness is the face-down boneyard. Two players take turns at one screen.',
+  linkRules: 'Game rules',
   fieldBottom: 'Bottom player',
   fieldTop: 'Top player',
   fieldLang: 'Language',
@@ -368,6 +370,7 @@ const es: Dict = {
   tagline:
     'Dominó donde se cultiva y se poda un árbol. Las manos están abiertas como en ajedrez; ' +
     'el único azar es el pozo boca abajo. Dos jugadores se turnan en una pantalla.',
+  linkRules: 'Reglas del juego',
   fieldBottom: 'Jugador inferior',
   fieldTop: 'Jugador superior',
   fieldLang: 'Idioma',
@@ -529,6 +532,7 @@ const de: Dict = {
   tagline:
     'Domino, bei dem ein Baum wächst und beschnitten wird. Die Hände liegen offen wie beim Schach; ' +
     'der einzige Zufall ist der verdeckte Talon. Zwei Spieler wechseln sich an einem Bildschirm ab.',
+  linkRules: 'Spielregeln',
   fieldBottom: 'Unterer Spieler',
   fieldTop: 'Oberer Spieler',
   fieldLang: 'Sprache',
@@ -690,6 +694,7 @@ const pt: Dict = {
   tagline:
     'Dominó em que se cultiva e poda uma árvore. As mãos ficam abertas como no xadrez; ' +
     'o único acaso é o dorme virado para baixo. Dois jogadores se revezam numa tela.',
+  linkRules: 'Regras do jogo',
   fieldBottom: 'Jogador de baixo',
   fieldTop: 'Jogador de cima',
   fieldLang: 'Idioma',
@@ -850,6 +855,7 @@ const pt: Dict = {
 const zh: Dict = {
   tagline:
     '一种“种树与修剪”的多米诺：双方手牌像下棋一样公开，唯一的运气来自扣着的牌堆。两名玩家在同一屏幕轮流行棋。',
+  linkRules: '游戏规则',
   fieldBottom: '下方玩家',
   fieldTop: '上方玩家',
   fieldLang: '语言',
@@ -1016,6 +1022,7 @@ const uk: Dict = {
   tagline:
     'Доміно, в якому дерево вирощують і підрізають. Руки відкриті, як у шахах; ' +
     'єдина випадковість — закритий базар. Ходять по черзі за одним екраном.',
+  linkRules: 'Правила гри',
   fieldBottom: 'Нижній гравець',
   fieldTop: 'Верхній гравець',
   fieldLang: 'Мова',

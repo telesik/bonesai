@@ -41,6 +41,22 @@ const LS_UI_KEY = 'bonesai-ui-v1';
 const RULES_VERSION = '1.0';
 const RULES_URL = 'https://doi.org/10.5281/zenodo.21745035';
 
+/** Полный текст правил по языку интерфейса; перевода pt-BR у документов пока нет,
+ *  поэтому португальская локаль ведёт на английскую версию. */
+const RULES_DOC_LANG: Record<Locale, string> = {
+  ru: 'ru',
+  en: 'en',
+  es: 'es',
+  de: 'de',
+  pt: 'en',
+  uk: 'uk',
+  zh: 'zh',
+};
+
+function rulesDocUrl(): string {
+  return `https://github.com/telesik/bonesai/blob/main/docs/RULES.${RULES_DOC_LANG[getLocale()]}.md`;
+}
+
 interface PileSprite {
   x: number;
   y: number;
@@ -1079,6 +1095,7 @@ export function initApp(): void {
       <div class="card">
         <h1><span class="gold">B</span>onesai</h1>
         <p class="sub">${L().tagline}</p>
+        <p class="sub rules-line"><a href="${rulesDocUrl()}" target="_blank" rel="noopener">${L().linkRules}</a></p>
         <div class="field"><label for="inp-n0">${L().fieldBottom}</label>
           <input id="inp-n0" type="text" value="${L().defaultP1}" maxlength="16"></div>
         <div class="field"><label for="inp-n1">${L().fieldTop}</label>

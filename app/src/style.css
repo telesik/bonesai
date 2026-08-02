@@ -631,9 +631,9 @@ body {
   inset: 0;
   background: rgba(8, 12, 10, 0.66);
   backdrop-filter: blur(5px);
+  /* Центровка карточки — margin:auto у .card, а не align/justify:
+     иначе при низком окне верх карточки обрезается и не прокручивается. */
   display: flex;
-  align-items: center;
-  justify-content: center;
   z-index: 50;
   animation: fade-in 0.3s ease;
   overflow-y: auto;
@@ -653,6 +653,7 @@ body {
   box-shadow: var(--shadow);
   padding: 28px 32px;
   width: min(560px, 94vw);
+  margin: auto;
   animation: card-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1);
 }
 
@@ -686,6 +687,16 @@ body {
   font-size: 13.5px;
   margin: 0 0 18px;
   line-height: 1.45;
+}
+
+.card .rules-line {
+  margin-top: -12px;
+}
+
+.card .rules-line a {
+  color: var(--gold);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--gold-soft);
 }
 
 .field {
