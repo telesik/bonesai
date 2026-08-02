@@ -96,4 +96,29 @@ describe('перекладка веток при наложении', () => {
       { x: -2, y: 0 },
     ]);
   });
+
+  it('упор конца в ветку (без наложения) чинится requireFreeEnds', () => {
+    // После 8 ходов спирали наложения нет, но конец последнего поворота
+    // упёрся клеткой роста прямо в корень.
+    const eight = spiral.slice(0, 8);
+    const plain = simulateLayout(eight, { respectAllSides: true })!;
+    const occ = new Set(plain.occupied);
+    expect(plain.ends.some((e) => occ.has(`${e.attach.x},${e.attach.y}`))).toBe(true);
+    // Со свободными концами поворот флипается, упора нет.
+    const free = simulateLayout(eight, { requireFreeEnds: true })!;
+    expect(free).not.toBeNull();
+    const occ2 = new Set(free.occupied);
+    expect(free.ends.every((e) => !occ2.has(`${e.attach.x},${e.attach.y}`))).toBe(true);
+  });
+
+  it('соль даёт другую валидную раскладку того же дерева', () => {
+    const eight = spiral.slice(0, 8);
+    const base = simulateLayout(eight)!;
+    let different = false;
+    for (let s = 1; s <= 8 && !different; s++) {
+      const alt = simulateLayout(eight, { salt: s });
+      if (alt && JSON.stringify(alt.cells) !== JSON.stringify(base.cells)) different = true;
+    }
+    expect(different).toBe(true);
+  });
 });

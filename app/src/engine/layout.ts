@@ -176,6 +176,16 @@ export interface SimulateOptions {
   readonly hardLastSide?: boolean;
   /** Для тестов: все записанные стороны жёсткие, перебор запрещён. */
   readonly respectAllSides?: boolean;
+  /**
+   * Требовать свободные клетки роста у всех открытых концов: ветка,
+   * упёршаяся хвостом в другую, — повод для перекладки, как и наложение.
+   */
+  readonly requireFreeEnds?: boolean;
+  /**
+   * Соль ручной перекладки: меняет порядок перебора сторон, давая другие
+   * валидные раскладки. 0 — обычный порядок (записанная/автосторона первой).
+   */
+  readonly salt?: number;
 }
 
 /**
@@ -220,8 +230,16 @@ export function simulateLayout(
     return sim;
   };
 
+  /** Финальная проверка раскладки: у каждого конца свободна клетка роста. */
+  const endsFree = (sim: SimState): boolean => {
+    for (const e of sim.ends.values()) {
+      if (sim.occ.has(cellKey(e.attach))) return false;
+    }
+    return true;
+  };
+
   const dfs = (i: number, sim: SimState): SimState | null => {
-    if (i > lastIdx) return sim;
+    if (i > lastIdx) return opts.requireFreeEnds && !endsFree(sim) ? null : sim;
     if (--budget < 0) throw budgetExceeded;
     const m = moves[i]!;
     let options: ReadonlyArray<0 | 1 | undefined>;
@@ -230,7 +248,14 @@ export function simulateLayout(
     } else {
       const end = sim.ends.get(m.endId);
       if (!end) return null;
-      const pref = m.side ?? turnSideIndex(sim.occ, end.attach, end.dir);
+      let pref = m.side ?? turnSideIndex(sim.occ, end.attach, end.dir);
+      // Соль ручной перекладки: у части поворотов предпочтение флипается —
+      // разные соли дают разные, но детерминированные раскладки.
+      if (opts.salt) {
+        let h = Math.imul((opts.salt << 5) ^ (i + 1), 0x9e3779b9) >>> 0;
+        h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0;
+        if (h & 1) pref = (1 - pref) as 0 | 1;
+      }
       const fixed =
         opts.respectAllSides === true ||
         (opts.hardLastSide === true && i === lastIdx && m.side !== undefined);
@@ -257,25 +282,24 @@ export function simulateLayout(
 
 const budgetExceeded = Symbol('layout-budget');
 
-/**
- * Перекладка стола после наложения: топология и правила не меняются, меняются
- * только стороны поворотов — ветки разъезжаются, чтобы кости не лежали друг
- * на друге. Если раскладки без наложений не существует (или история состояния
- * не согласована), состояние возвращается как есть — кость остаётся
- * «приподнятой» (overlap), игра не ломается.
- */
-export function resolveOverlaps(state: GameState): GameState {
-  if (!state.placed.some((p) => p.overlap)) return state;
+/** Есть ли конец, упёршийся клеткой роста в занятую клетку. */
+export function hasBlockedEnd(state: GameState): boolean {
+  const occ = new Set(state.occupied);
+  return state.ends.some((e) => occ.has(cellKey(e.attach)));
+}
+
+/** Ходы выставлений из истории, согласованные с выложенными костями. */
+function extractPlaceMoves(state: GameState): PlaceMove[] | null {
   const placeMoves = state.history.filter(
     (m): m is PlaceMove => m.type === 'place' || m.type === 'placeRoot',
   );
-  if (placeMoves.length !== state.placed.length) return state;
-  if (placeMoves.some((m, i) => m.tile !== state.placed[i]!.tile)) return state;
+  if (placeMoves.length !== state.placed.length) return null;
+  if (placeMoves.some((m, i) => m.tile !== state.placed[i]!.tile)) return null;
+  return placeMoves;
+}
 
-  const res = simulateLayout(placeMoves, { hardLastSide: true }) ?? simulateLayout(placeMoves);
-  if (!res) return state;
-
-  // Защитная проверка: топология концов обязана совпасть один в один.
+/** Применить найденную раскладку с защитной проверкой топологии концов. */
+function applyLayout(state: GameState, res: LayoutResult): GameState | null {
   const byId = new Map(res.ends.map((e) => [e.id, e]));
   const consistent =
     res.ends.length === state.ends.length &&
@@ -283,8 +307,7 @@ export function resolveOverlaps(state: GameState): GameState {
       const n = byId.get(e.id);
       return !!n && n.value === e.value && n.fresh === e.fresh && n.fromSeq === e.fromSeq;
     });
-  if (!consistent) return state;
-
+  if (!consistent) return null;
   return {
     ...state,
     placed: state.placed.map((p, i) => {
@@ -297,4 +320,49 @@ export function resolveOverlaps(state: GameState): GameState {
     }),
     occupied: res.occupied,
   };
+}
+
+/**
+ * Перекладка стола: топология и правила не меняются (§6.3), меняются только
+ * стороны поворотов. Повод — наложение костей или ветка, упёршаяся хвостом
+ * в другую. Сначала ищем раскладку без наложений и со свободными концами;
+ * при наложении согласны и на раскладку без наложений с упёршимися концами.
+ * Если ничего не нашлось (или история не согласована) — состояние как есть:
+ * кость остаётся «приподнятой», игра не ломается.
+ */
+export function resolveOverlaps(state: GameState): GameState {
+  const overlapping = state.placed.some((p) => p.overlap);
+  if (!overlapping && !hasBlockedEnd(state)) return state;
+  const placeMoves = extractPlaceMoves(state);
+  if (!placeMoves) return state;
+
+  const res =
+    simulateLayout(placeMoves, { hardLastSide: true, requireFreeEnds: true }) ??
+    (overlapping ? simulateLayout(placeMoves, { hardLastSide: true }) : null) ??
+    (overlapping ? simulateLayout(placeMoves) : null);
+  if (!res) return state;
+  return applyLayout(state, res) ?? state;
+}
+
+/**
+ * Ручная перекладка (кнопка в UI): найти другую валидную раскладку того же
+ * дерева. salt задаёт вариант; возвращает null, если другой раскладки нет.
+ * Меняет только геометрию — реплей по протоколу строит каноническую
+ * раскладку, это осознанно (§6.3: раскладка правилам безразлична).
+ */
+export function shuffleLayout(state: GameState, salt: number): GameState | null {
+  const placeMoves = extractPlaceMoves(state);
+  if (!placeMoves) return null;
+  const currentKey = JSON.stringify(state.placed.map((p) => p.cells));
+  for (let k = 0; k < 8; k++) {
+    const s = ((salt + k) % 1024) + 1;
+    const res =
+      simulateLayout(placeMoves, { requireFreeEnds: true, salt: s }) ??
+      simulateLayout(placeMoves, { salt: s });
+    if (!res) continue;
+    if (JSON.stringify(res.cells) === currentKey) continue;
+    const next = applyLayout(state, res);
+    if (next) return next;
+  }
+  return null;
 }
