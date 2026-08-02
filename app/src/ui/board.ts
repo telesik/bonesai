@@ -54,6 +54,7 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
   let vb: ViewBox = { x: -CELL * 9, y: -CELL * 5, w: CELL * 18, h: CELL * 10 };
   let autoFit = true;
   let lastGame: GameState | null = null;
+  let lastGhostCells: Vec[] = [];
   let tweenHandle = 0;
 
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -88,7 +89,7 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     tweenHandle = requestAnimationFrame(step);
   }
 
-  /** Прямоугольник, охватывающий фигуру и открытые концы. */
+  /** Прямоугольник, охватывающий фигуру, открытые концы и призраки ходов. */
   function contentBox(game: GameState): ViewBox {
     let minX = -1.5;
     let maxX = 1.5;
@@ -105,6 +106,7 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
       grow(p.cells[1]);
     }
     for (const e of game.ends) grow(e.attach);
+    for (const c of lastGhostCells) grow(c);
     const rect = svg.getBoundingClientRect();
     const aspect = rect.width > 0 && rect.height > 0 ? rect.width / rect.height : 16 / 9;
     let w = (maxX - minX) * CELL;
@@ -289,13 +291,16 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     }
 
     // Призраки ходов выбранной кости.
+    lastGhostCells = [];
     if (opts.selected !== null) {
       for (const m of opts.ghostMoves) {
         if (m.type === 'placeRoot') {
           // Как ляжет корень (§6.2): горизонтально, тупик слева.
+          lastGhostCells.push({ x: -1, y: 0 }, { x: 0, y: 0 });
           parts.push(ghostSvg(game, m, [{ x: -1, y: 0 }, { x: 0, y: 0 }], 'root', opts));
         } else if (m.type === 'place') {
           const geo = placementGeometry(game, m.tile, m.endId, m.mode);
+          lastGhostCells.push(geo.cells[0], geo.cells[1]);
           parts.push(ghostSvg(game, m, [geo.cells[0], geo.cells[1]], m.mode, opts));
         }
       }
