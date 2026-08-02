@@ -157,6 +157,33 @@ const ru = {
   ownerFirst: 'первый игрок',
   ownerSecond: 'второй игрок',
 
+  // Подтверждение хода и режим обучения
+  tipConfirm: 'Подтверждение хода: клик по тени только выбирает ход, кость ставится после подтверждения',
+  tipTutor: 'Режим обучения: подсказки, какие ходы возможны и как их сделать',
+  confirmAsk: (tile: string, mode: string) => `Поставить ${tile} ${mode}?`,
+  confirmRootAsk: (tile: string) => `Выставить корень ${tile}?`,
+  confirmYes: 'Поставить',
+  confirmNo: 'Отмена',
+  tutorRootHasDouble:
+    'Кликните дубль в руке, затем пунктирный след в центре стола. Дубль обязан стать корнем — от него растёт дерево (§5.2, §6.2).',
+  tutorRootNoDouble:
+    'Дубля на руке нет — кликните кучу базара и возьмите кость (§5.3). Попадётся дубль — он сразу станет корнем.',
+  tutorRootMustPlay:
+    'Вытянутый дубль обязан стать корнем (§5.3) — кликните след в центре стола.',
+  tutorPick:
+    'Кликните светлую кость в руке — на столе появятся тени её ходов. Прямо продолжает ветку (§6.3); на поворот создаёт развилку, оба конца которой свежие — на свежий первую кость можно только прямо (§6.4); поперёк дубль закрывает ветку навсегда (§7.1). Цифры в кружках — открытые концы, перечёркнутые — мёртвые (§9.1).',
+  tutorTurnSides:
+    'У поворота две тени: в какую сторону изогнуть ветку. На правила выбор не влияет (§6.3), но помогает дереву не разрастаться.',
+  tutorMustPlay:
+    'Кость из базара подошла — обязаны сходить именно ею (§8.2): кликните одну из теней.',
+  tutorDraw:
+    'Сходить нечем — кликните кучу базара (§8.2). Кость подойдёт — обязаны сходить ею; нет — останется в руке, ход перейдёт.',
+  tutorPass: 'Сходить нечем, базар пуст — ход пропускается сам (§8.3).',
+  tutorOver:
+    'Партия окончена: очки получает тот, у кого сумма на руках больше (§10.3). Матч проигрывает набравший 100 (§10.5).',
+  tutorPending:
+    'Проверьте выбранный ход: поставить — кнопкой или повторным кликом по тени; передумали — отмена или другая тень.',
+
   // Бейдж версии
   versionWord: 'версия',
   rulesWord: (v: string) => `правила ${v}`,
@@ -283,6 +310,32 @@ const en: Dict = {
   ownerFirst: 'first player',
   ownerSecond: 'second player',
 
+  tipConfirm: 'Move confirmation: a ghost click only selects the move; the tile is placed after you confirm',
+  tipTutor: 'Learning mode: hints on what moves are available and how to make them',
+  confirmAsk: (tile, mode) => `Play ${tile} ${mode}?`,
+  confirmRootAsk: (tile) => `Place the root ${tile}?`,
+  confirmYes: 'Place',
+  confirmNo: 'Cancel',
+  tutorRootHasDouble:
+    'Click a double in your hand, then the dashed outline at the centre of the table. A double must become the root — the tree grows from it (§5.2, §6.2).',
+  tutorRootNoDouble:
+    'No double in hand — click the boneyard pile and draw a tile (§5.3). Once a double comes up, it becomes the root right away.',
+  tutorRootMustPlay:
+    'The drawn double must become the root (§5.3) — click the outline at the centre of the table.',
+  tutorPick:
+    'Click a lit tile in your hand — ghosts of its moves appear on the table. Straight continues the branch (§6.3); a turn creates a fork with two fresh ends — a fresh end takes its first tile straight only (§6.4); a double played crosswise closes the branch for good (§7.1). Numbers in circles are open ends; crossed-out ones are dead (§9.1).',
+  tutorTurnSides:
+    'A turn shows two ghosts: which way the branch bends. The choice does not affect the rules (§6.3), but it helps keep the tree from sprawling.',
+  tutorMustPlay:
+    'The tile drawn from the boneyard fits — you must play it (§8.2): click one of the ghosts.',
+  tutorDraw:
+    'No move — click the boneyard pile (§8.2). If the drawn tile fits, you must play it; otherwise it stays in your hand and the turn passes.',
+  tutorPass: 'No move and the boneyard is empty — the turn is passed automatically (§8.3).',
+  tutorOver:
+    'The game is over: points go to whoever holds more (§10.3). Whoever reaches 100 loses the match (§10.5).',
+  tutorPending:
+    'Check the selected move: place it with the button or by clicking the ghost again; changed your mind — cancel or pick another ghost.',
+
   versionWord: 'version',
   rulesWord: (v) => `rules ${v}`,
 };
@@ -405,6 +458,32 @@ const es: Dict = {
   tileClosedSuffix: ' — rama cerrada',
   ownerFirst: 'primer jugador',
   ownerSecond: 'segundo jugador',
+
+  tipConfirm: 'Confirmación de jugada: el clic en la sombra solo elige la jugada; la ficha se coloca tras confirmar',
+  tipTutor: 'Modo aprendizaje: pistas sobre qué jugadas hay y cómo hacerlas',
+  confirmAsk: (tile, mode) => `¿Colocar ${tile} ${mode}?`,
+  confirmRootAsk: (tile) => `¿Colocar la raíz ${tile}?`,
+  confirmYes: 'Colocar',
+  confirmNo: 'Cancelar',
+  tutorRootHasDouble:
+    'Haga clic en un doble de su mano y luego en la silueta punteada del centro de la mesa. El doble debe ser la raíz: de ella crece el árbol (§5.2, §6.2).',
+  tutorRootNoDouble:
+    'Sin doble en la mano — haga clic en el pozo y robe una ficha (§5.3). Cuando salga un doble, será la raíz de inmediato.',
+  tutorRootMustPlay:
+    'El doble robado debe ser la raíz (§5.3): haga clic en la silueta del centro de la mesa.',
+  tutorPick:
+    'Haga clic en una ficha iluminada de su mano: aparecerán las sombras de sus jugadas. Recto continúa la rama (§6.3); en giro crea una bifurcación con dos extremos frescos — en un extremo fresco la primera ficha va solo recta (§6.4); el doble atravesado cierra la rama para siempre (§7.1). Los números en círculos son extremos abiertos; los tachados, muertos (§9.1).',
+  tutorTurnSides:
+    'El giro muestra dos sombras: hacia qué lado doblar la rama. La elección no afecta a las reglas (§6.3), pero evita que el árbol se desparrame.',
+  tutorMustPlay:
+    'La ficha robada del pozo sirve — está obligado a jugarla (§8.2): haga clic en una de las sombras.',
+  tutorDraw:
+    'Sin jugada — haga clic en el pozo (§8.2). Si la ficha sirve, debe jugarla; si no, se queda en la mano y el turno pasa.',
+  tutorPass: 'Sin jugada y pozo vacío: el turno se pasa solo (§8.3).',
+  tutorOver:
+    'Juego terminado: puntúa quien retiene más en la mano (§10.3). Pierde el encuentro quien llega a 100 (§10.5).',
+  tutorPending:
+    'Revise la jugada elegida: colóquela con el botón o con otro clic en la sombra; si cambia de idea — cancele o elija otra sombra.',
 
   versionWord: 'versión',
   rulesWord: (v) => `reglas ${v}`,
@@ -529,6 +608,32 @@ const de: Dict = {
   ownerFirst: 'erster Spieler',
   ownerSecond: 'zweiter Spieler',
 
+  tipConfirm: 'Zugbestätigung: der Klick auf den Schatten wählt den Zug nur aus; gelegt wird nach Bestätigung',
+  tipTutor: 'Lernmodus: Hinweise, welche Züge möglich sind und wie man sie macht',
+  confirmAsk: (tile, mode) => `${tile} legen: ${mode}?`,
+  confirmRootAsk: (tile) => `Wurzel ${tile} legen?`,
+  confirmYes: 'Legen',
+  confirmNo: 'Abbrechen',
+  tutorRootHasDouble:
+    'Klicken Sie einen Pasch in Ihrer Hand an, dann die gestrichelte Silhouette in der Tischmitte. Der Pasch muss die Wurzel werden — aus ihr wächst der Baum (§5.2, §6.2).',
+  tutorRootNoDouble:
+    'Kein Pasch auf der Hand — klicken Sie den Talon an und ziehen Sie einen Stein (§5.3). Kommt ein Pasch, wird er sofort zur Wurzel.',
+  tutorRootMustPlay:
+    'Der gezogene Pasch muss die Wurzel werden (§5.3) — klicken Sie die Silhouette in der Tischmitte an.',
+  tutorPick:
+    'Klicken Sie einen hellen Stein in Ihrer Hand an — auf dem Tisch erscheinen die Schatten seiner Züge. Gerade setzt den Zweig fort (§6.3); als Abzweig entsteht eine Gabelung mit zwei frischen Enden — auf ein frisches Ende kommt der erste Stein nur gerade (§6.4); ein Pasch quer schließt den Zweig für immer (§7.1). Zahlen in Kreisen sind offene Enden, durchgestrichene sind tot (§9.1).',
+  tutorTurnSides:
+    'Der Abzweig zeigt zwei Schatten: in welche Richtung sich der Zweig biegt. Die Wahl berührt die Regeln nicht (§6.3), hält den Baum aber kompakt.',
+  tutorMustPlay:
+    'Der vom Talon gezogene Stein passt — Sie müssen ihn legen (§8.2): klicken Sie einen der Schatten an.',
+  tutorDraw:
+    'Kein Zug — klicken Sie den Talon an (§8.2). Passt der Stein, müssen Sie ihn legen; sonst bleibt er in der Hand und der Gegner ist am Zug.',
+  tutorPass: 'Kein Zug und der Talon ist leer — der Zug wird automatisch übersprungen (§8.3).',
+  tutorOver:
+    'Die Partie ist zu Ende: Punkte bekommt, wer mehr auf der Hand behält (§10.3). Das Match verliert, wer 100 erreicht (§10.5).',
+  tutorPending:
+    'Prüfen Sie den gewählten Zug: legen — per Knopf oder erneutem Klick auf den Schatten; umentschieden — abbrechen oder einen anderen Schatten wählen.',
+
   versionWord: 'Version',
   rulesWord: (v) => `Regeln ${v}`,
 };
@@ -652,6 +757,32 @@ const pt: Dict = {
   ownerFirst: 'primeiro jogador',
   ownerSecond: 'segundo jogador',
 
+  tipConfirm: 'Confirmação de jogada: o clique na sombra só escolhe a jogada; a peça é colocada após confirmar',
+  tipTutor: 'Modo aprendizado: dicas sobre quais jogadas existem e como fazê-las',
+  confirmAsk: (tile, mode) => `Colocar ${tile} ${mode}?`,
+  confirmRootAsk: (tile) => `Colocar a raiz ${tile}?`,
+  confirmYes: 'Colocar',
+  confirmNo: 'Cancelar',
+  tutorRootHasDouble:
+    'Clique numa dupla da sua mão e depois na silhueta pontilhada no centro da mesa. A dupla deve ser a raiz — dela cresce a árvore (§5.2, §6.2).',
+  tutorRootNoDouble:
+    'Sem dupla na mão — clique no dorme e compre uma peça (§5.3). Quando vier uma dupla, ela vira a raiz na hora.',
+  tutorRootMustPlay:
+    'A dupla comprada deve ser a raiz (§5.3): clique na silhueta no centro da mesa.',
+  tutorPick:
+    'Clique numa peça acesa da sua mão — as sombras das jogadas aparecem na mesa. Reto continua o ramo (§6.3); em curva cria uma bifurcação com duas pontas frescas — numa ponta fresca a primeira peça vai só reta (§6.4); a dupla atravessada fecha o ramo para sempre (§7.1). Números em círculos são pontas abertas; riscados, mortas (§9.1).',
+  tutorTurnSides:
+    'A curva mostra duas sombras: para que lado o ramo dobra. A escolha não afeta as regras (§6.3), mas evita que a árvore se espalhe.',
+  tutorMustPlay:
+    'A peça comprada do dorme serve — você é obrigado a jogá-la (§8.2): clique numa das sombras.',
+  tutorDraw:
+    'Sem jogada — clique no dorme (§8.2). Se a peça servir, você deve jogá-la; senão ela fica na mão e a vez passa.',
+  tutorPass: 'Sem jogada e dorme vazio — a vez passa sozinha (§8.3).',
+  tutorOver:
+    'Jogo encerrado: pontua quem retém mais na mão (§10.3). Perde a partida quem chega a 100 (§10.5).',
+  tutorPending:
+    'Revise a jogada escolhida: coloque com o botão ou com outro clique na sombra; mudou de ideia — cancele ou escolha outra sombra.',
+
   versionWord: 'versão',
   rulesWord: (v) => `regras ${v}`,
 };
@@ -772,6 +903,28 @@ const zh: Dict = {
   tileClosedSuffix: '——已封枝',
   ownerFirst: '先手玩家',
   ownerSecond: '后手玩家',
+
+  tipConfirm: '落子确认：点击虚影只是选择走法，确认后才放牌',
+  tipTutor: '教学模式：提示有哪些走法以及如何操作',
+  confirmAsk: (tile, mode) => `确认放置 ${tile}（${mode}）？`,
+  confirmRootAsk: (tile) => `打出根牌 ${tile}？`,
+  confirmYes: '放置',
+  confirmNo: '取消',
+  tutorRootHasDouble:
+    '点击手中的对子，再点击桌面中央的虚线轮廓。对子必须成为根牌——整棵树由它长出（§5.2、§6.2）。',
+  tutorRootNoDouble:
+    '手中没有对子——点击牌堆摸一张牌（§5.3）。摸到对子后，它立刻成为根牌。',
+  tutorRootMustPlay: '摸到的对子必须成为根牌（§5.3）——点击桌面中央的轮廓。',
+  tutorPick:
+    '点击手中亮起的牌，桌上会出现它的走法虚影。直放延续枝条（§6.3）；转向形成分叉，分叉的两端都是新端——新端上第一张牌只能直放（§6.4）；对子横放则永久封枝（§7.1）。圆圈中的数字是开放端，划掉的是死端（§9.1）。',
+  tutorTurnSides:
+    '转向有两个虚影：枝条往哪边弯。选择不影响规则（§6.3），但能让树形更紧凑。',
+  tutorMustPlay: '从牌堆摸到的牌可用——必须打出它（§8.2）：点击其中一个虚影。',
+  tutorDraw:
+    '无牌可出——点击牌堆（§8.2）。摸到的牌可用就必须打出；不可用则留在手中，轮到对方。',
+  tutorPass: '无牌可出且牌堆已空——自动跳过本轮（§8.3）。',
+  tutorOver: '本局结束：手中剩余点数多者得分（§10.3）。先到 100 分者输掉整场比赛（§10.5）。',
+  tutorPending: '请核对所选走法：按按钮或再次点击虚影放牌；想换——取消或点击其他虚影。',
 
   versionWord: '版本',
   rulesWord: (v) => `规则 ${v}`,
@@ -905,6 +1058,32 @@ const uk: Dict = {
   tileClosedSuffix: ' — гілку закрито',
   ownerFirst: 'перший гравець',
   ownerSecond: 'другий гравець',
+
+  tipConfirm: 'Підтвердження ходу: клік по тіні лише обирає хід, кістка ставиться після підтвердження',
+  tipTutor: 'Режим навчання: підказки, які ходи можливі та як їх зробити',
+  confirmAsk: (tile, mode) => `Поставити ${tile} ${mode}?`,
+  confirmRootAsk: (tile) => `Виставити корінь ${tile}?`,
+  confirmYes: 'Поставити',
+  confirmNo: 'Скасувати',
+  tutorRootHasDouble:
+    'Клікніть дубль у руці, потім пунктирний слід у центрі столу. Дубль мусить стати коренем — з нього росте дерево (§5.2, §6.2).',
+  tutorRootNoDouble:
+    'Дубля в руці немає — клікніть купу базару і візьміть кістку (§5.3). Трапиться дубль — він одразу стане коренем.',
+  tutorRootMustPlay:
+    'Витягнутий дубль мусить стати коренем (§5.3) — клікніть слід у центрі столу.',
+  tutorPick:
+    'Клікніть світлу кістку в руці — на столі з’являться тіні її ходів. Прямо продовжує гілку (§6.3); на поворот створює розвилку, обидва кінці якої свіжі — на свіжий першу кістку можна лише прямо (§6.4); упоперек дубль закриває гілку назавжди (§7.1). Цифри в кружках — відкриті кінці, перекреслені — мертві (§9.1).',
+  tutorTurnSides:
+    'У повороту дві тіні: в який бік зігнути гілку. На правила вибір не впливає (§6.3), але допомагає дереву не розростатися.',
+  tutorMustPlay:
+    'Кістка з базару підійшла — зобов’язані сходити саме нею (§8.2): клікніть одну з тіней.',
+  tutorDraw:
+    'Ходити нічим — клікніть купу базару (§8.2). Кістка підійде — зобов’язані сходити нею; ні — залишиться в руці, хід перейде.',
+  tutorPass: 'Ходити нічим, базар порожній — хід пропускається сам (§8.3).',
+  tutorOver:
+    'Партію закінчено: очки отримує той, у кого сума на руках більша (§10.3). Матч програє той, хто набере 100 (§10.5).',
+  tutorPending:
+    'Перевірте обраний хід: поставити — кнопкою або повторним кліком по тіні; передумали — скасуйте чи оберіть іншу тінь.',
 
   versionWord: 'версія',
   rulesWord: (v) => `правила ${v}`,
