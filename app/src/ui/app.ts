@@ -1080,14 +1080,10 @@ export function initApp(): void {
         <h1><span class="gold">B</span>onesai</h1>
         <p class="sub">${L().tagline}</p>
         <div class="field"><label for="inp-n0">${L().fieldBottom}</label>
-          <input id="inp-n0" type="text" value="${getLocale() === 'ru' ? 'Алексей' : L().defaultP1}" maxlength="16"></div>
+          <input id="inp-n0" type="text" value="${L().defaultP1}" maxlength="16"></div>
         <div class="field"><label for="inp-n1">${L().fieldTop}</label>
           <input id="inp-n1" type="text" value="${
-            opponentPref !== 'human'
-              ? L().botName
-              : getLocale() === 'ru'
-                ? 'Олечка'
-                : L().defaultP2
+            opponentPref !== 'human' ? L().botName : L().defaultP2
           }" maxlength="16"></div>
         <div class="field"><label for="inp-opp">${L().fieldOpponent}</label>
           <select id="inp-opp" class="lang-select">
@@ -1439,14 +1435,9 @@ export function initApp(): void {
       // Имя верхнего игрока меняем только если оно осталось автоподставленным.
       const n1 = document.querySelector<HTMLInputElement>('#inp-n1');
       if (n1) {
-        const autoNames = [L().botName, L().defaultP2, 'Олечка'];
+        const autoNames = [L().botName, L().defaultP2];
         if (autoNames.includes(n1.value.trim()) || n1.value.trim() === '') {
-          n1.value =
-            opponentPref !== 'human'
-              ? L().botName
-              : getLocale() === 'ru'
-                ? 'Олечка'
-                : L().defaultP2;
+          n1.value = opponentPref !== 'human' ? L().botName : L().defaultP2;
         }
       }
     } else if (t.id === 'inp-tutor') {
