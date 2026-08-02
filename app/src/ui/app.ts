@@ -124,7 +124,7 @@ export function initApp(): void {
   // Настройки вида (переживают перезагрузку).
   let markOwners = false;
   let autoFitOn = true;
-  let soundOn = false;
+  let soundOn = true;
   let handsVertical = true;
   let confirmOn = false;
   let tutorOn = false;
@@ -140,7 +140,7 @@ export function initApp(): void {
     };
     markOwners = !!prefs.markOwners;
     autoFitOn = prefs.autoFit !== false;
-    soundOn = !!prefs.sound;
+    soundOn = prefs.sound !== false;
     handsVertical = prefs.handsVertical !== false;
     confirmOn = !!prefs.confirm;
     tutorOn = !!prefs.tutor;
@@ -944,6 +944,10 @@ export function initApp(): void {
         <label class="check"><input id="inp-variant" type="checkbox">
           ${L().variantText}
         </label>
+        <label class="check"><input id="inp-tutor" type="checkbox" ${tutorOn ? 'checked' : ''}>
+          ${L().tipTutor}
+        </label>
+        ${tutorOn ? `<p class="sub tutor-hint">${L().tutorStart}</p>` : ''}
         <hr class="sep">
         <div class="lot-result" id="lot-result">${L().lotDecides}</div>
         <div class="lot-row" id="lot-row"></div>
@@ -1254,6 +1258,21 @@ export function initApp(): void {
     } else if (t.id === 'inp-protocol' && t.files?.[0]) {
       void importProtocol(t.files[0]);
       t.value = '';
+    } else if (t.id === 'inp-tutor') {
+      tutorOn = t.checked;
+      elBtnTutor.classList.toggle('active', tutorOn);
+      persistUi();
+      // Подсказку показываем/прячем на месте, не пересобирая экран —
+      // иначе потерялись бы введённые имена и результат жребия.
+      const existing = elOverlay.querySelector('.tutor-hint');
+      if (tutorOn && !existing) {
+        const p = document.createElement('p');
+        p.className = 'sub tutor-hint';
+        p.textContent = L().tutorStart;
+        t.closest('label')!.after(p);
+      } else if (!tutorOn && existing) {
+        existing.remove();
+      }
     } else if (t.id === 'inp-lang' || t.id === 'lang-select') {
       setLocale(t.value as Locale);
       persistUi();

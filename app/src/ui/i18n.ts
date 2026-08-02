@@ -164,6 +164,8 @@ const ru = {
   confirmRootAsk: (tile: string) => `Выставить корень ${tile}?`,
   confirmYes: 'Поставить',
   confirmNo: 'Отмена',
+  tutorStart:
+    'Введите имена и бросьте жребий — первым ходит тот, у кого меньше сумма на вытянутой кости (§2.5). Потом «Начать матч»: по 7 костей в руки, 14 — в закрытый базар (§2.3). Дальше подсказки поведут по ходу партии.',
   tutorRootHasDouble:
     'Кликните дубль в руке, затем пунктирный след в центре стола. Дубль обязан стать корнем — от него растёт дерево (§5.2, §6.2).',
   tutorRootNoDouble:
@@ -316,6 +318,8 @@ const en: Dict = {
   confirmRootAsk: (tile) => `Place the root ${tile}?`,
   confirmYes: 'Place',
   confirmNo: 'Cancel',
+  tutorStart:
+    'Enter the names and draw lots — whoever draws the tile with the lower total moves first (§2.5). Then “Start match”: 7 tiles per hand, 14 go to the face-down boneyard (§2.3). From there the hints will guide you through the game.',
   tutorRootHasDouble:
     'Click a double in your hand, then the dashed outline at the centre of the table. A double must become the root — the tree grows from it (§5.2, §6.2).',
   tutorRootNoDouble:
@@ -465,6 +469,8 @@ const es: Dict = {
   confirmRootAsk: (tile) => `¿Colocar la raíz ${tile}?`,
   confirmYes: 'Colocar',
   confirmNo: 'Cancelar',
+  tutorStart:
+    'Escriba los nombres y echen a suertes: mueve primero quien saca la ficha de menor suma (§2.5). Luego «Empezar partida»: 7 fichas por mano y 14 al pozo boca abajo (§2.3). Después las pistas le guiarán durante el juego.',
   tutorRootHasDouble:
     'Haga clic en un doble de su mano y luego en la silueta punteada del centro de la mesa. El doble debe ser la raíz: de ella crece el árbol (§5.2, §6.2).',
   tutorRootNoDouble:
@@ -614,6 +620,8 @@ const de: Dict = {
   confirmRootAsk: (tile) => `Wurzel ${tile} legen?`,
   confirmYes: 'Legen',
   confirmNo: 'Abbrechen',
+  tutorStart:
+    'Namen eingeben und losen — wer den Stein mit der kleineren Summe zieht, beginnt (§2.5). Dann „Match starten“: je 7 Steine auf die Hand, 14 in den verdeckten Talon (§2.3). Danach führen die Hinweise durch die Partie.',
   tutorRootHasDouble:
     'Klicken Sie einen Pasch in Ihrer Hand an, dann die gestrichelte Silhouette in der Tischmitte. Der Pasch muss die Wurzel werden — aus ihr wächst der Baum (§5.2, §6.2).',
   tutorRootNoDouble:
@@ -763,6 +771,8 @@ const pt: Dict = {
   confirmRootAsk: (tile) => `Colocar a raiz ${tile}?`,
   confirmYes: 'Colocar',
   confirmNo: 'Cancelar',
+  tutorStart:
+    'Digite os nomes e sorteiem — começa quem tira a peça de menor soma (§2.5). Depois «Começar a partida»: 7 peças por mão, 14 vão ao dorme fechado (§2.3). Daí em diante as dicas guiam você pelo jogo.',
   tutorRootHasDouble:
     'Clique numa dupla da sua mão e depois na silhueta pontilhada no centro da mesa. A dupla deve ser a raiz — dela cresce a árvore (§5.2, §6.2).',
   tutorRootNoDouble:
@@ -910,6 +920,8 @@ const zh: Dict = {
   confirmRootAsk: (tile) => `打出根牌 ${tile}？`,
   confirmYes: '放置',
   confirmNo: '取消',
+  tutorStart:
+    '输入玩家名并抽签——摸到点数和较小的牌者先行（§2.5）。然后「开始比赛」：每人 7 张牌，14 张进入盖放的牌堆（§2.3）。之后提示会引导您完成对局。',
   tutorRootHasDouble:
     '点击手中的对子，再点击桌面中央的虚线轮廓。对子必须成为根牌——整棵树由它长出（§5.2、§6.2）。',
   tutorRootNoDouble:
@@ -1065,6 +1077,8 @@ const uk: Dict = {
   confirmRootAsk: (tile) => `Виставити корінь ${tile}?`,
   confirmYes: 'Поставити',
   confirmNo: 'Скасувати',
+  tutorStart:
+    'Введіть імена і киньте жереб — першим ходить той, у кого менша сума на витягнутій кістці (§2.5). Потім «Почати матч»: по 7 кісток у руки, 14 — у закритий базар (§2.3). Далі підказки вестимуть по ходу партії.',
   tutorRootHasDouble:
     'Клікніть дубль у руці, потім пунктирний слід у центрі столу. Дубль мусить стати коренем — з нього росте дерево (§5.2, §6.2).',
   tutorRootNoDouble:

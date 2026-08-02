@@ -63,6 +63,24 @@ export function tileDefs(): string {
   <filter id="f-raised" x="-60%" y="-60%" width="220%" height="220%">
     <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#000" flood-opacity="0.6"/>
   </filter>
+  <!-- Разметка принадлежности ходов (кнопка ◐). Именно SVG-фильтры, а не CSS
+       filter: на SVG-элементах в мобильном Safari CSS-фильтры не работают.
+       Область расширена под вылет тени f-raised у приподнятых костей. -->
+  <filter id="f-own-first" x="-60%" y="-60%" width="220%" height="220%">
+    <feComponentTransfer>
+      <feFuncR type="linear" slope="1.09"/>
+      <feFuncG type="linear" slope="1.09"/>
+      <feFuncB type="linear" slope="1.09"/>
+    </feComponentTransfer>
+  </filter>
+  <filter id="f-own-second" x="-60%" y="-60%" width="220%" height="220%">
+    <feColorMatrix type="saturate" values="0.85"/>
+    <feComponentTransfer>
+      <feFuncR type="linear" slope="0.76"/>
+      <feFuncG type="linear" slope="0.76"/>
+      <feFuncB type="linear" slope="0.76"/>
+    </feComponentTransfer>
+  </filter>
   `;
 }
 

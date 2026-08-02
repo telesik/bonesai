@@ -882,15 +882,10 @@ hr.sep {
 
 /* ----------------------------------------------------- разметка ходов на столе */
 
-/* Классы ролей стоят на костях всегда; отличие включает .mark-owners на svg.
-   CSS-фильтр на группе не затирает SVG-фильтр тени внутри неё. */
-#board.mark-owners .placed.by-first {
-  filter: brightness(1.09);
-}
-
-#board.mark-owners .placed.by-second {
-  filter: brightness(0.76) saturate(0.85);
-}
+/* Разметка принадлежности реализована SVG-фильтрами f-own-first/f-own-second
+   через атрибут filter в board.ts: CSS filter на SVG-элементах не работает
+   в мобильном Safari. Классы by-first/by-second на костях остаются для тестов
+   и возможных стилевых надстроек. */
 
 /* -------------------------------------------------------------- бейдж версии */
 
@@ -1183,4 +1178,13 @@ hr.sep {
   .confirm-q {
     font-size: 13px;
   }
+}
+
+/* Подсказка режима обучения на стартовом экране */
+.card .tutor-hint {
+  margin: 2px 0 10px;
+  padding: 8px 12px;
+  border-left: 2px solid var(--gold-soft);
+  background: rgba(201, 168, 106, 0.07);
+  border-radius: 0 8px 8px 0;
 }

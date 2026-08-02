@@ -273,8 +273,13 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
       const owner = opts.markOwners
         ? ` (${p.by === game.first ? L().ownerFirst : L().ownerSecond})`
         : '';
+      // Разметка — SVG-фильтром через атрибут: CSS filter на SVG-элементах
+      // не работает в мобильном Safari.
+      const ownFilter = opts.markOwners
+        ? ` filter="url(#${p.by === game.first ? 'f-own-first' : 'f-own-second'})"`
+        : '';
       parts.push(
-        `<g transform="${tileTransform(p.cells[0], p.cells[1])}" class="placed kind-${p.kind} ${role}">
+        `<g transform="${tileTransform(p.cells[0], p.cells[1])}" class="placed kind-${p.kind} ${role}"${ownFilter}>
           <title>${t.hi}:${t.lo}${p.kind === 'root' ? L().tileRootSuffix : ''}${
             p.kind === 'cross' ? L().tileClosedSuffix : ''
           }${owner}</title>${face}</g>`,
