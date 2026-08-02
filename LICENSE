@@ -1,25 +1,29 @@
-Bonesai — правила игры и документация
-Copyright (c) 2026 Алексей Киселёв, Ольга Попова
-                   (Alexey Kiselyov, Olga Popova)
+Bonesai — game rules and documentation
+Copyright (c) 2026 Alexey Kiselyov, Olga Popova
+                   (Алексей Киселёв, Ольга Попова)
 
-Эта работа распространяется по лицензии
-Creative Commons Attribution 4.0 International (CC BY 4.0).
+This work is licensed under the
+Creative Commons Attribution 4.0 International (CC BY 4.0) licence.
 
-Вы можете свободно:
-  — делиться: копировать и распространять материал на любом носителе и в любом формате;
-  — адаптировать: ремиксовать, видоизменять и создавать новое, в том числе в коммерческих целях.
+You are free to:
+  — Share: copy and redistribute the material in any medium or format;
+  — Adapt: remix, transform, and build upon the material for any purpose,
+    even commercially.
 
-При условии соблюдения следующих требований:
-  — Указание авторства. Вы должны указать авторство, привести ссылку на лицензию и обозначить
-    внесённые изменения. Это можно сделать любым разумным способом, но без создания впечатления,
-    что лицензиар одобряет вас или ваше использование.
+Under the following terms:
+  — Attribution. You must give appropriate credit, provide a link to the licence,
+    and indicate if changes were made. You may do so in any reasonable manner,
+    but not in any way that suggests the licensor endorses you or your use.
 
-Полный текст лицензии:
-  https://creativecommons.org/licenses/by/4.0/legalcode.ru
+Full licence text:
+  https://creativecommons.org/licenses/by/4.0/legalcode.en
 
-Краткое изложение:
-  https://creativecommons.org/licenses/by/4.0/deed.ru
+Summary:
+  https://creativecommons.org/licenses/by/4.0/deed.en
 
-Примечание о предмете лицензии. Лицензия распространяется на текст правил, схемы и документацию —
-то есть на конкретное выражение. Сами игровые механики и правила как система не являются объектом
-авторского права ни в одной юрисдикции и не могут быть ограничены этой лицензией. Подробнее — IP.md.
+Russian version of this notice: LICENSE.ru
+
+Note on the subject of the licence. The licence covers the text of the rules,
+the diagrams and the documentation — that is, the specific expression. Game
+mechanics and rules as a system are not subject to copyright in any jurisdiction
+and cannot be restricted by this licence.
