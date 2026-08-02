@@ -1197,3 +1197,32 @@ hr.sep {
 .end-marker.root-dead .end-ring {
   stroke-dasharray: 4 4;
 }
+
+/* ------------------------------------------------ последняя кость и полёт */
+
+/* Кость на столе скрыта, пока к месту летит её клон. */
+.placed.incoming {
+  visibility: hidden;
+}
+
+/* Кольцо последней выставленной кости: заметить мгновенный ход (бота). */
+.last-ring {
+  fill: none;
+  stroke: var(--gold-soft);
+  stroke-width: 2;
+  pointer-events: none;
+  animation: last-ring-in 0.5s ease;
+}
+
+@keyframes last-ring-in {
+  from {
+    stroke: var(--gold);
+    stroke-width: 3.5;
+  }
+}
+
+/* Летящая на стол кость управляется по кадрам — CSS-переход не нужен. */
+.flying-tile.fly-place {
+  transition: none;
+  transform-origin: 44px 22px;
+}

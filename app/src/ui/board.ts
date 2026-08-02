@@ -39,6 +39,8 @@ export interface BoardRenderOptions {
   markOwners: boolean;
   /** Ход, ожидающий подтверждения: его призрак подсвечивается. */
   pending?: Move | null;
+  /** Кость с этим seq скрыта: к месту летит её HTML-клон (анимация хода). */
+  hideSeq?: number | null;
 }
 
 /** Совпадение хода с ожидающим подтверждения (включая сторону поворота). */
@@ -313,11 +315,20 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
       const ownFilter = opts.markOwners
         ? ` filter="url(#${p.by === game.first ? 'f-own-first' : 'f-own-second'})"`
         : '';
+      // Последняя выставленная кость помечается кольцом — иначе мгновенный
+      // ход (особенно бота) легко пропустить. Скрытая — ждёт свой летящий клон.
+      const isLast = p.seq === game.placed.length - 1 && game.placed.length > 1;
+      const flags = `${isLast ? ' last-placed' : ''}${opts.hideSeq === p.seq ? ' incoming' : ''}`;
       parts.push(
-        `<g transform="${tileTransform(p.cells[0], p.cells[1])}" class="placed kind-${p.kind} ${role}"${ownFilter}>
+        `<g transform="${tileTransform(p.cells[0], p.cells[1])}" data-seq="${p.seq}" class="placed kind-${p.kind} ${role}${flags}"${ownFilter}>
           <title>${t.hi}:${t.lo}${p.kind === 'root' ? L().tileRootSuffix : ''}${
             p.kind === 'cross' ? L().tileClosedSuffix : ''
-          }${owner}</title>${face}</g>`,
+          }${owner}</title>${face}${
+            isLast
+              ? `<rect class="last-ring" x="${-TILE_L / 2 - 3}" y="${-TILE_W / 2 - 3}"
+                   width="${TILE_L + 6}" height="${TILE_W + 6}" rx="${TILE_R + 2.5}"/>`
+              : ''
+          }</g>`,
       );
     }
 
@@ -458,11 +469,47 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
       .join('');
   }
 
+  /** Экранные координаты центра выложенной кости (для летящего клона). */
+  function placedScreenPoint(seq: number): { x: number; y: number; angle: number; scale: number } | null {
+    const p = lastGame?.placed[seq];
+    if (!p) return null;
+    const rect = svg.getBoundingClientRect();
+    if (rect.width === 0) return null;
+    const cx = ((p.cells[0].x + p.cells[1].x) / 2) * CELL;
+    const cy = ((p.cells[0].y + p.cells[1].y) / 2) * CELL;
+    const angle =
+      (Math.atan2(p.cells[1].y - p.cells[0].y, p.cells[1].x - p.cells[0].x) * 180) / Math.PI;
+    return {
+      x: rect.left + ((cx - vb.x) / vb.w) * rect.width,
+      y: rect.top + ((cy - vb.y) / vb.h) * rect.height,
+      angle,
+      scale: (TILE_L / vb.w) * rect.width,
+    };
+  }
+
   return {
     render,
     fit(animate = true): void {
       autoFit = true;
       fit(animate);
+    },
+    placedScreenPoint,
+    /** Довести кость в кадр минимальным сдвигом (автомасштаб выключен). */
+    ensureVisible(seq: number, margin = 40): void {
+      const pt = placedScreenPoint(seq);
+      if (!pt) return;
+      const rect = svg.getBoundingClientRect();
+      const x = pt.x - rect.left;
+      const y = pt.y - rect.top;
+      let dx = 0;
+      let dy = 0;
+      if (x < margin) dx = x - margin;
+      else if (x > rect.width - margin) dx = x - (rect.width - margin);
+      if (y < margin) dy = y - margin;
+      else if (y > rect.height - margin) dy = y - (rect.height - margin);
+      if (dx === 0 && dy === 0) return;
+      const k = vb.w / rect.width;
+      setViewBox({ ...vb, x: vb.x + dx * k, y: vb.y + dy * k }, true);
     },
     /** Явно включить/выключить автомасштаб (галочка в шапке). */
     setAutoFit(on: boolean, animate = true): void {

@@ -107,6 +107,9 @@ export function initApp(): void {
   let pileSprites: PileSprite[] = [];
   let pileRoundKey = -1;
   let animateSeq: number | null = null;
+  /** Кость, скрытая на столе, пока к месту летит её клон. */
+  let flyingSeq: number | null = null;
+  let flightCancel: (() => void) | null = null;
   let showRoundOver = false;
   let roundOverTimer = 0;
   let autoPassTimer = 0;
@@ -343,6 +346,55 @@ export function initApp(): void {
     }, 750);
   }
 
+  /**
+   * Полёт кости из руки к месту установки. Цель пересчитывается каждый кадр:
+   * автомасштаб в это же время может панорамировать и зумить стол.
+   */
+  function flyPlacement(seq: number, tile: TileId, from: DOMRect): void {
+    flightCancel?.();
+    flyingSeq = seq; // отменённый полёт мог сбросить флаг скрытия
+    const pt = parseTile(tile);
+    const clone = document.createElement('div');
+    clone.className = 'flying-tile fly-place';
+    clone.innerHTML = tileSvgElement(tileFace(pt.hi, pt.lo, { shadow: 'flat' }), 88);
+    document.body.appendChild(clone);
+    const start = { x: from.left + from.width / 2, y: from.top + from.height / 2 };
+    const startAngle = handsVertical ? 90 : 0;
+    const t0 = performance.now();
+    const dur = 340;
+    let raf = 0;
+    const finish = (): void => {
+      cancelAnimationFrame(raf);
+      clone.remove();
+      flyingSeq = null;
+      flightCancel = null;
+      document.querySelector(`.placed[data-seq="${seq}"]`)?.classList.remove('incoming');
+    };
+    flightCancel = finish;
+    const frame = (): void => {
+      const target = board.placedScreenPoint(seq);
+      if (!target) {
+        finish();
+        return;
+      }
+      const t = Math.min(1, (performance.now() - t0) / dur);
+      const e = 1 - Math.pow(1 - t, 3);
+      const x = start.x + (target.x - start.x) * e;
+      const y = start.y + (target.y - start.y) * e;
+      const angle = startAngle + (target.angle - startAngle) * e;
+      const scale = 1 + (target.scale / 88 - 1) * e;
+      clone.style.left = `${x - 44}px`;
+      clone.style.top = `${y - 22}px`;
+      clone.style.transform = `rotate(${angle}deg) scale(${scale.toFixed(3)})`;
+      if (t >= 1) {
+        finish();
+        return;
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+  }
+
   // --- Основной диспетчер --------------------------------------------------------
 
   // Метка последнего применённого хода: гасит второй клик двойного клика,
@@ -352,6 +404,16 @@ export function initApp(): void {
   function dispatch(move: Move): void {
     if (replay || !match || match.round.phase === 'over') return;
     clearTimeout(autoPassTimer);
+    // Точка старта полёта: кость в руке ходящего (до применения хода).
+    let flyFrom: DOMRect | null = null;
+    if (move.type === 'place' || move.type === 'placeRoot') {
+      const cur = match.round.current;
+      const el =
+        document.querySelector(
+          `.hand-tile[data-player="${cur}"][data-tile="${move.tile}"]`,
+        ) ?? (cur === 0 ? elHandBottom : elHandTop);
+      flyFrom = el.getBoundingClientRect();
+    }
     let round: GameState;
     try {
       round = applyMove(match.round, move);
@@ -378,8 +440,16 @@ export function initApp(): void {
         renderAll();
       }, 1100);
     }
+    const placedSeq = animateSeq;
+    if (placedSeq !== null && flyFrom) flyingSeq = placedSeq;
     persist();
     renderAll();
+    if (placedSeq !== null) {
+      if (flyFrom) flyPlacement(placedSeq, round.placed[placedSeq]!.tile, flyFrom);
+      // Автомасштаб сам держит всё в кадре; без него доводим кость минимальным
+      // сдвигом — после перекладки дерева она могла уехать за край.
+      if (!board.isAutoFit()) board.ensureVisible(placedSeq);
+    }
   }
 
   // --- Рендер ----------------------------------------------------------------
@@ -681,6 +751,7 @@ export function initApp(): void {
       interactive: round.phase !== 'over',
       markOwners,
       pending,
+      hideSeq: flyingSeq,
     });
   }
 
@@ -1440,6 +1511,7 @@ export function initApp(): void {
     match = { ...match, round: next };
     persist();
     renderAll();
+    if (!board.isAutoFit()) board.ensureVisible(match.round.placed.length - 1);
   });
 
   // Галочка «автомасштаб»: включена — держим всё дерево в кадре.
