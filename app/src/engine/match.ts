@@ -2,11 +2,15 @@
 
 import { seedFromCrypto, type RngState } from './rng';
 import { newRound } from './rules';
-import type { GameState, RoundResult, Variant } from './state';
+import type { GameState, Move, RoundResult, Variant } from './state';
 
 export interface FinishedRound extends RoundResult {
   /** Кто был первым игроком в этой партии. */
   readonly first: 0 | 1;
+  /** Начальный seed партии — для воспроизведения по протоколу. */
+  readonly seed: RngState;
+  /** Протокол партии: все ходы по порядку. */
+  readonly moves: readonly Move[];
 }
 
 export type MatchOutcome =
@@ -56,7 +60,10 @@ export function finishRound(match: MatchState): MatchState {
     match.totals[0] + result.added[0],
     match.totals[1] + result.added[1],
   ];
-  const rounds = [...match.rounds, { ...result, first: match.first }];
+  const rounds = [
+    ...match.rounds,
+    { ...result, first: match.first, seed: match.round.seed, moves: match.round.history },
+  ];
   let outcome: MatchOutcome | null = null;
   if (totals[0] >= 100 || totals[1] >= 100) {
     outcome =

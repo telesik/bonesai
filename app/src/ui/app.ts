@@ -8,21 +8,32 @@ import {
   handSum,
   isDouble,
   legalMoves,
+  matchProtocol,
   nextRound,
   parseTile,
   pipSum,
+  replayRound,
   seedFromCrypto,
   startMatch,
+  validateProtocol,
   type GameState,
   type LogEntry,
+  type MatchProtocol,
   type MatchState,
   type Move,
+  type RoundProtocol,
   type TileId,
+  type Variant,
 } from '../engine';
 import { createBoard } from './board';
 import { tileBack, tileDefs, tileFace, tileSvgElement } from './tile-svg';
 
 const LS_KEY = 'bonesai-match-v1';
+const LS_UI_KEY = 'bonesai-ui-v1';
+
+/** Версия правил, которую реализует прототип, и постоянная ссылка на них. */
+const RULES_VERSION = '1.0';
+const RULES_URL = 'https://doi.org/10.5281/zenodo.21745035';
 
 interface PileSprite {
   x: number;
@@ -41,6 +52,16 @@ export function initApp(): void {
   defsHost.innerHTML = `<svg width="0" height="0"><defs>${tileDefs()}</defs></svg>`;
   document.body.prepend(defsHost);
 
+  // Бейдж версии в правом нижнем углу: версия приложения, версия правил
+  // (ссылка на опубликованную запись) и коммит сборки — для разбора багов.
+  const appVersion = __APP_VERSION__.split('.').slice(0, 2).join('.');
+  const badge = document.createElement('div');
+  badge.id = 'version-badge';
+  badge.innerHTML =
+    `версия ${appVersion} (<a href="${RULES_URL}" target="_blank" rel="noopener">` +
+    `правила ${RULES_VERSION}</a>, hashCommit=${__GIT_HASH__})`;
+  document.body.appendChild(badge);
+
   // --- DOM ------------------------------------------------------------------
   const $ = <T extends HTMLElement = HTMLElement>(sel: string): T => {
     const el = document.querySelector<T>(sel);
@@ -56,6 +77,9 @@ export function initApp(): void {
   const elBoneyard = $('#boneyard');
   const elToast = $('#toast');
   const elOverlay = $('#overlay');
+  const elHistoryBar = $('#history-bar');
+  const elBtnHist = $('#btn-hist');
+  const elBtnMark = $('#btn-mark');
   const elBtnFit = $('#btn-fit');
   const elBtnNew = $('#btn-new');
   const svgBoard = document.querySelector<SVGSVGElement>('#board')!;
@@ -72,8 +96,37 @@ export function initApp(): void {
   let autoPassForLog = -1;
   let toastTimer = 0;
 
+  // Режим истории: просмотр партии по протоколу (текущий матч или файл).
+  interface ReplayData {
+    readonly names: readonly [string, string];
+    readonly variant: Variant;
+    readonly rounds: readonly RoundProtocol[];
+    readonly external: boolean;
+  }
+  let replay: { data: ReplayData; roundIdx: number; step: number } | null = null;
+  let replayLastKey = '';
+
+  // Настройки вида (переживают перезагрузку).
+  let markOwners = false;
+  try {
+    markOwners = !!(JSON.parse(localStorage.getItem(LS_UI_KEY) ?? '{}') as {
+      markOwners?: boolean;
+    }).markOwners;
+  } catch {
+    /* ignore */
+  }
+
+  function persistUi(): void {
+    try {
+      localStorage.setItem(LS_UI_KEY, JSON.stringify({ markOwners }));
+    } catch {
+      /* ignore */
+    }
+  }
+
   const board = createBoard(svgBoard, {
     onMove(move) {
+      if (replay) return;
       if (performance.now() - lastDispatchAt < 300) return;
       dispatch(move);
     },
@@ -91,7 +144,7 @@ export function initApp(): void {
 
   function persist(): void {
     try {
-      if (match) localStorage.setItem(LS_KEY, JSON.stringify({ v: 1, match }));
+      if (match) localStorage.setItem(LS_KEY, JSON.stringify({ v: 2, match }));
     } catch {
       /* приватный режим — не страшно */
     }
@@ -116,7 +169,7 @@ export function initApp(): void {
       const m = data?.match;
       const r = m?.round;
       const ok =
-        data?.v === 1 &&
+        data?.v === 2 &&
         Array.isArray(m?.names) &&
         m.names.length === 2 &&
         m.names.every((n) => typeof n === 'string') &&
@@ -131,7 +184,10 @@ export function initApp(): void {
         tiles(r.hands[1]) &&
         tiles(r.boneyard) &&
         Array.isArray(r.placed) &&
-        Array.isArray(r.ends);
+        Array.isArray(r.ends) &&
+        typeof r.seed === 'number' &&
+        Array.isArray(r.history) &&
+        Array.isArray(m.rounds);
       return ok ? m : drop();
     } catch {
       return drop();
@@ -183,7 +239,7 @@ export function initApp(): void {
   let lastDispatchAt = 0;
 
   function dispatch(move: Move): void {
-    if (!match || match.round.phase === 'over') return;
+    if (replay || !match || match.round.phase === 'over') return;
     clearTimeout(autoPassTimer);
     let round: GameState;
     try {
@@ -214,6 +270,12 @@ export function initApp(): void {
   // --- Рендер ----------------------------------------------------------------
 
   function renderAll(): void {
+    if (replay) {
+      renderReplayView();
+      return;
+    }
+    elHistoryBar.hidden = true;
+    elBtnHist.classList.remove('active');
     if (!match) {
       renderStartScreen();
       return;
@@ -270,21 +332,21 @@ export function initApp(): void {
   }
 
   // Формулировки без глаголов прошедшего времени: имена игроков любого рода.
-  function describeLog(e: LogEntry): string {
+  function describeLog(e: LogEntry, names: readonly [string, string]): string {
     switch (e.kind) {
       case 'root':
-        return `${nameOf(e.player)}: корень ${tileLabel(e.tile)}`;
+        return `${names[e.player]}: корень ${tileLabel(e.tile)}`;
       case 'place': {
         const mode =
           e.mode === 'straight' ? 'прямо' : e.mode === 'turn' ? 'на поворот' : 'поперёк — ветка закрыта';
-        return `${nameOf(e.player)}: ${tileLabel(e.tile)} ${mode}`;
+        return `${names[e.player]}: ${tileLabel(e.tile)} ${mode}`;
       }
       case 'draw':
         return e.played
-          ? `${nameOf(e.player)}: кость из базара — подходит!`
-          : `${nameOf(e.player)}: кость из базара — в руку, ход дальше`;
+          ? `${names[e.player]}: кость из базара — подходит!`
+          : `${names[e.player]}: кость из базара — в руку, ход дальше`;
       case 'pass':
-        return `${nameOf(e.player)}: пас`;
+        return `${names[e.player]}: пас`;
       case 'end':
         return e.cause === 'fish' ? 'Рыба!' : 'Выход!';
     }
@@ -292,7 +354,7 @@ export function initApp(): void {
 
   function statusTexts(round: GameState): { event: string; prompt: string } {
     const last = round.log[round.log.length - 1];
-    const event = last ? describeLog(last) : 'Новая партия';
+    const event = last ? describeLog(last, match!.names) : 'Новая партия';
     if (round.phase === 'over') {
       return { event, prompt: 'Партия окончена' };
     }
@@ -324,27 +386,53 @@ export function initApp(): void {
       : { event, prompt: `${name}: сходить нечем, базар пуст — пас` };
   }
 
-  function renderHand(player: 0 | 1, round: GameState, legal: readonly Move[]): void {
+  /** Режим просмотра руки в истории: активен «ходивший», всё открыто, без кликов. */
+  interface HandView {
+    readonly mover: 0 | 1 | null;
+    readonly names: readonly [string, string];
+  }
+
+  function renderHand(
+    player: 0 | 1,
+    round: GameState,
+    legal: readonly Move[],
+    view: HandView | null = null,
+  ): void {
     const el = player === 0 ? elHandBottom : elHandTop;
     const hand = round.hands[player];
-    const isTurn = round.phase !== 'over' && round.current === player;
+    // «Активный» игрок: в живой игре — чей ход, в истории — кто сделал
+    // показанный ход. Отмечается рамкой руки и рукой-указателем у имени.
+    const isActive = view
+      ? view.mover === player
+      : round.phase !== 'over' && round.current === player;
     const secondPlayer = (1 - round.first) as 0 | 1;
-    const hidden = player === secondPlayer && !round.secondRevealed;
-    el.classList.toggle('active', isTurn);
+    const hidden = !view && player === secondPlayer && !round.secondRevealed;
+    const name = view ? view.names[player] : nameOf(player);
+    el.classList.toggle('active', isActive);
 
     const playable = new Set(
-      isTurn
+      !view && isActive
         ? legal
             .filter((m): m is Extract<Move, { tile: TileId }> => 'tile' in m)
             .map((m) => m.tile)
         : [],
     );
 
+    // Последняя добранная и оставшаяся в руке кость подсвечивается, пока не
+    // случится следующее действие: иначе легко не заметить, что пришло из базара.
+    const lastLog = round.log[round.log.length - 1];
+    const freshlyDrawn =
+      lastLog?.kind === 'draw' && !lastLog.played && lastLog.player === player
+        ? lastLog.tile
+        : null;
+
     const meta = `
       <div class="hand-meta">
         <div class="hand-name">${
+          isActive ? '<span class="turn-mark" title="Ходит">☞</span>' : ''
+        }${
           round.first === player ? '<span class="first-chip">первый</span>' : ''
-        }${esc(nameOf(player))}</div>
+        }${esc(name)}</div>
         <div class="hand-sum">${
           hidden
             ? `${hand.length} кост${plural(hand.length)} · рука закрыта до первого хода`
@@ -358,16 +446,17 @@ export function initApp(): void {
         const cls = [
           'hand-tile',
           playable.has(t) ? 'playable' : '',
-          isTurn && !playable.has(t) && !hidden ? 'dimmed' : '',
-          selected === t && isTurn ? 'selected' : '',
-          round.mustPlay === t && isTurn ? 'must' : '',
+          !view && isActive && !playable.has(t) && !hidden ? 'dimmed' : '',
+          !view && selected === t && isActive ? 'selected' : '',
+          !view && round.mustPlay === t && isActive ? 'must' : '',
+          freshlyDrawn === t && !hidden ? 'drawn-new' : '',
         ]
           .filter(Boolean)
           .join(' ');
         const inner = hidden ? tileBack({ shadow: 'flat' }) : tileFace(p.hi, p.lo, { shadow: 'flat' });
         // Скрытой руке идентификаторы костей в DOM не выдаём (§3.2): клики по
         // ней всё равно невозможны, а инспектор браузера не должен подсматривать.
-        const attrs = hidden ? '' : ` data-player="${player}" data-tile="${t}"`;
+        const attrs = hidden || view ? '' : ` data-player="${player}" data-tile="${t}"`;
         return `<div class="${cls}"${attrs}>
           ${tileSvgElement(inner, 88)}
         </div>`;
@@ -418,6 +507,7 @@ export function initApp(): void {
       selected,
       animateSeq,
       interactive: round.phase !== 'over',
+      markOwners,
     });
   }
 
@@ -432,6 +522,221 @@ export function initApp(): void {
         toast(`У ${nameOf(round.current)} нет хода — пас`);
       }
       autoPassTimer = window.setTimeout(() => dispatch({ type: 'pass' }), 1300);
+    }
+  }
+
+  // --- История ходов (просмотр по протоколу) ---------------------------------------
+
+  function openHistory(): void {
+    if (!match) return;
+    const rounds: RoundProtocol[] = match.rounds.map((r) => ({
+      seed: r.seed,
+      first: r.first,
+      moves: r.moves,
+      result: { cause: r.cause, sums: r.sums, added: r.added, winner: r.winner },
+    }));
+    const cur = match.round;
+    if (cur.phase !== 'over') {
+      rounds.push({ seed: cur.seed, first: cur.first, moves: cur.history });
+    }
+    if (rounds.length === 0) return;
+    const roundIdx = rounds.length - 1;
+    replay = {
+      data: { names: match.names, variant: match.variant, rounds, external: false },
+      roundIdx,
+      step: rounds[roundIdx]!.moves.length,
+    };
+    clearTimeout(autoPassTimer);
+    clearTimeout(roundOverTimer);
+    renderAll();
+  }
+
+  function exitReplay(): void {
+    const wasExternal = replay?.data.external ?? false;
+    replay = null;
+    replayLastKey = '';
+    // Если живая партия уже завершена — вернуть экран итогов.
+    if (!wasExternal && match && match.round.phase === 'over') showRoundOver = true;
+    renderAll();
+  }
+
+  function renderReplayView(): void {
+    const rp = replay!;
+    const round = rp.data.rounds[rp.roundIdx]!;
+    const total = round.moves.length;
+    rp.step = Math.max(0, Math.min(rp.step, total));
+    let state: GameState;
+    try {
+      state = replayRound(round, rp.data.variant, rp.step);
+    } catch (err) {
+      toast(`Протокол не воспроизводится: ${(err as Error).message}`, true);
+      exitReplay();
+      return;
+    }
+    const prev = replayLastKey.split(':');
+    const forward = prev[0] === String(rp.roundIdx) && Number(prev[1]) < rp.step;
+    replayLastKey = `${rp.roundIdx}:${rp.step}`;
+
+    const lastLog = state.log[state.log.length - 1];
+    const mover: 0 | 1 | null =
+      lastLog && 'player' in lastLog ? lastLog.player : null;
+
+    elBtnHist.classList.add('active');
+    elRoundChip.textContent = `просмотр · партия ${rp.roundIdx + 1} из ${rp.data.rounds.length}`;
+    elScoreChips.innerHTML = ([0, 1] as const)
+      .map(
+        (p) =>
+          `<span class="score-chip p${p} ${mover === p ? 'turn' : ''}">${esc(
+            rp.data.names[p],
+          )}</span>`,
+      )
+      .join('<span class="vs">·</span>');
+    elStatusEvent.textContent = rp.data.external
+      ? 'Просмотр загруженного протокола'
+      : 'История ходов матча';
+    elStatusPrompt.innerHTML =
+      rp.step === 0
+        ? `Раздача — первым ходит <b>${esc(rp.data.names[round.first])}</b>`
+        : lastLog
+          ? esc(describeLog(lastLog, rp.data.names))
+          : '';
+
+    const handView: HandView = { mover, names: rp.data.names };
+    renderHand(0, state, [], handView);
+    renderHand(1, state, [], handView);
+    renderBoneyardStatic(state, round.seed);
+
+    const lastMove = rp.step > 0 ? round.moves[rp.step - 1] : undefined;
+    const animate =
+      forward && lastMove && (lastMove.type === 'place' || lastMove.type === 'placeRoot');
+    board.render(state, {
+      ghostMoves: [],
+      selected: null,
+      animateSeq: animate ? state.placed.length - 1 : null,
+      interactive: false,
+      markOwners,
+    });
+    elOverlay.hidden = true;
+    renderHistoryBar(rp, total);
+  }
+
+  /** Куча базара в режиме истории: раскладка по seed партии, без кликов. */
+  function renderBoneyardStatic(state: GameState, seed: number): void {
+    elBoneyard.classList.remove('can-draw');
+    const count = state.boneyard.length;
+    const key = `replay|${seed}|${count}`;
+    if (elBoneyard.dataset.key === key) return;
+    elBoneyard.dataset.key = key;
+    const rand = scatterRand(seed >>> 0);
+    const tiles: string[] = [];
+    for (let i = 0; i < 14; i++) {
+      const x = 12 + rand() * 180;
+      const y = 8 + rand() * 140;
+      const rot = -50 + rand() * 100;
+      if (i < count) {
+        tiles.push(`<div class="pile-tile"
+          style="left:${x}px; top:${y}px; --rot:${rot}deg; transform:rotate(${rot}deg)">
+          ${tileSvgElement(tileBack({ shadow: 'flat' }), 78)}
+        </div>`);
+      }
+    }
+    elBoneyard.innerHTML = `${tiles.join('')}<div class="pile-count">базар: ${count}</div>`;
+  }
+
+  function renderHistoryBar(
+    rp: NonNullable<typeof replay>,
+    total: number,
+  ): void {
+    elHistoryBar.hidden = false;
+    const barKey = `${rp.data.external}|${rp.data.rounds.length}|${rp.roundIdx}|${total}`;
+    if (elHistoryBar.dataset.key !== barKey) {
+      elHistoryBar.dataset.key = barKey;
+      const options = rp.data.rounds
+        .map((r, i) => {
+          const res = r.result;
+          const label = res
+            ? `Партия ${i + 1} — ${res.cause === 'fish' ? 'рыба' : 'выход'}, ${res.sums[0]}:${res.sums[1]}`
+            : `Партия ${i + 1} — идёт`;
+          return `<option value="${i}" ${i === rp.roundIdx ? 'selected' : ''}>${label}</option>`;
+        })
+        .join('');
+      elHistoryBar.innerHTML = `
+        <button class="icon-btn" data-action="replay-exit" data-tip="Вернуться к игре">✕</button>
+        <select id="replay-round" data-tip="Выбор партии матча">${options}</select>
+        <button class="icon-btn" data-action="replay-first" data-tip="К раздаче">⏮</button>
+        <button class="icon-btn" data-action="replay-prev" data-tip="Ход назад">◀</button>
+        <input type="range" id="replay-slider" min="0" max="${total}" step="1" value="${rp.step}">
+        <button class="icon-btn" data-action="replay-next" data-tip="Ход вперёд">▶</button>
+        <button class="icon-btn" data-action="replay-last" data-tip="К концу партии">⏭</button>
+        <span id="replay-pos" class="replay-pos"></span>
+        <button class="icon-btn" data-action="download-protocol" data-tip="Скачать протокол партий (JSON)">⭳</button>`;
+    }
+    const slider = document.querySelector<HTMLInputElement>('#replay-slider');
+    if (slider && slider.value !== String(rp.step)) slider.value = String(rp.step);
+    const pos = document.querySelector<HTMLElement>('#replay-pos');
+    if (pos) pos.textContent = `ход ${rp.step}/${total}`;
+  }
+
+  /** Скачать протокол матча (или открытый внешний протокол) файлом JSON. */
+  function downloadProtocol(): void {
+    let proto: MatchProtocol | null = null;
+    if (replay?.data.external) {
+      proto = {
+        format: 'bonesai-protocol',
+        v: 1,
+        names: replay.data.names,
+        variant: replay.data.variant,
+        rounds: replay.data.rounds,
+      };
+    } else if (match) {
+      proto = matchProtocol(match);
+    }
+    if (!proto) return;
+    const blob = new Blob([JSON.stringify(proto, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+    a.href = url;
+    a.download = `bonesai-${stamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Протокол сохранён файлом JSON');
+  }
+
+  /** Загрузить протокол из файла: проверить воспроизведением и открыть просмотр. */
+  async function importProtocol(file: File): Promise<void> {
+    try {
+      const data = JSON.parse(await file.text()) as MatchProtocol;
+      if (
+        data?.format !== 'bonesai-protocol' ||
+        data.v !== 1 ||
+        !Array.isArray(data.rounds) ||
+        data.rounds.length === 0
+      ) {
+        throw new Error('это не протокол Bonesai');
+      }
+      const variant: Variant = { doubleOnlyCloses: !!data.variant?.doubleOnlyCloses };
+      const check = validateProtocol({ ...data, variant });
+      if (!check.ok) {
+        throw new Error(`партия ${check.round + 1} не воспроизводится (${check.error})`);
+      }
+      replay = {
+        data: {
+          names: [
+            String(data.names?.[0] ?? 'Игрок 1'),
+            String(data.names?.[1] ?? 'Игрок 2'),
+          ],
+          variant,
+          rounds: data.rounds,
+          external: true,
+        },
+        roundIdx: 0,
+        step: 0,
+      };
+      renderAll();
+      toast('Протокол проверен движком: все ходы легальны');
+    } catch (err) {
+      toast(`Не удалось загрузить протокол: ${(err as Error).message}`, true);
     }
   }
 
@@ -473,6 +778,10 @@ export function initApp(): void {
           <button class="btn" data-action="lot">Бросить жребий</button>
           <button class="btn" data-action="start" disabled id="btn-start">Начать матч</button>
           ${savedInfo}
+        </div>
+        <div class="btn-row">
+          <button class="btn ghost-btn" data-action="load-protocol">Загрузить протокол для разбора…</button>
+          <input id="inp-protocol" type="file" accept=".json,application/json" hidden>
         </div>
       </div>`;
     elOverlay.hidden = false;
@@ -563,6 +872,11 @@ export function initApp(): void {
 
     const outcome = match.outcome;
     let footer: string;
+    const reviewRow = `
+        <div class="btn-row">
+          <button class="btn ghost-btn" data-action="history">История ходов</button>
+          <button class="btn ghost-btn" data-action="download-protocol">Скачать протокол</button>
+        </div>`;
     if (outcome) {
       const title =
         outcome.kind === 'draw'
@@ -573,7 +887,7 @@ export function initApp(): void {
         <h2>${title}</h2>
         <div class="btn-row">
           <button class="btn" data-action="new-match">Новый матч</button>
-        </div>`;
+        </div>${reviewRow}`;
     } else {
       const nextFirst = lastRound.winner ?? ((1 - lastRound.first) as 0 | 1);
       const why = lastRound.winner !== null ? 'победитель партии' : 'после ничьей роли меняются';
@@ -581,7 +895,7 @@ export function initApp(): void {
         <div class="btn-row">
           <button class="btn" data-action="next-round">Следующая партия</button>
           <span class="result-note">Первым ходит ${esc(nameOf(nextFirst))} — ${why} (§2.5).</span>
-        </div>`;
+        </div>${reviewRow}`;
     }
 
     elOverlay.innerHTML = `
@@ -661,12 +975,12 @@ export function initApp(): void {
 
     const pile = target.closest<HTMLElement>('[data-pile]');
     if (pile) {
-      onPileClick(Number(pile.dataset.pile), pile);
+      if (!replay) onPileClick(Number(pile.dataset.pile), pile);
       return;
     }
 
     const handTile = target.closest<HTMLElement>('[data-tile]');
-    if (handTile && match && match.round.phase !== 'over') {
+    if (handTile && !replay && match && match.round.phase !== 'over') {
       const tile = handTile.dataset.tile as TileId;
       const player = Number(handTile.dataset.player) as 0 | 1;
       const round = match.round;
@@ -724,9 +1038,68 @@ export function initApp(): void {
       } else if (action === 'new-match') {
         match = null;
         lotFirst = null;
+        replay = null;
         localStorage.removeItem(LS_KEY);
         renderAll();
+      } else if (action === 'history') {
+        showRoundOver = false;
+        openHistory();
+      } else if (action === 'download-protocol') {
+        downloadProtocol();
+      } else if (action === 'load-protocol') {
+        document.querySelector<HTMLInputElement>('#inp-protocol')?.click();
+      } else if (action === 'replay-exit') {
+        exitReplay();
+      } else if (replay && action === 'replay-first') {
+        replay.step = 0;
+        renderAll();
+      } else if (replay && action === 'replay-prev') {
+        replay.step = Math.max(0, replay.step - 1);
+        renderAll();
+      } else if (replay && action === 'replay-next') {
+        replay.step += 1; // клампится в renderReplayView
+        renderAll();
+      } else if (replay && action === 'replay-last') {
+        replay.step = Number.MAX_SAFE_INTEGER; // клампится в renderReplayView
+        renderAll();
       }
+    }
+  });
+
+  // Ползунок и селект партии в панели истории; выбор файла протокола.
+  document.addEventListener('input', (ev) => {
+    const t = ev.target as HTMLInputElement;
+    if (t.id === 'replay-slider' && replay) {
+      replay.step = Number(t.value);
+      renderAll();
+    }
+  });
+
+  document.addEventListener('change', (ev) => {
+    const t = ev.target as HTMLInputElement;
+    if (t.id === 'replay-round' && replay) {
+      replay.roundIdx = Number(t.value);
+      replay.step = 0;
+      renderAll();
+    } else if (t.id === 'inp-protocol' && t.files?.[0]) {
+      void importProtocol(t.files[0]);
+      t.value = '';
+    }
+  });
+
+  elBtnHist.addEventListener('click', () => {
+    if (replay) exitReplay();
+    else openHistory();
+  });
+
+  elBtnMark.classList.toggle('active', markOwners);
+  elBtnMark.addEventListener('click', () => {
+    markOwners = !markOwners;
+    elBtnMark.classList.toggle('active', markOwners);
+    persistUi();
+    renderAll();
+    if (markOwners) {
+      toast('Разметка ходов: кости первого игрока светлее, второго — темнее');
     }
   });
 
@@ -741,6 +1114,7 @@ export function initApp(): void {
     }
     match = null;
     lotFirst = null;
+    replay = null;
     localStorage.removeItem(LS_KEY);
     renderAll();
   });

@@ -34,13 +34,17 @@ export interface BoardRenderOptions {
   animateSeq: number | null;
   /** Принимать ли клики по призракам. */
   interactive: boolean;
+  /** Разметка принадлежности: кости первого игрока светлее, второго — темнее. */
+  markOwners: boolean;
 }
 
 const MIN_W = CELL * 5;
 const MAX_W = CELL * 44;
+/** Минимальная ширина кадра автоподгонки: в начале партии стол видно «издалека». */
+const FIT_MIN_W = CELL * 18;
 
 export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
-  let vb: ViewBox = { x: -CELL * 5, y: -CELL * 4.2, w: CELL * 10, h: CELL * 8.4 };
+  let vb: ViewBox = { x: -CELL * 9, y: -CELL * 5, w: CELL * 18, h: CELL * 10 };
   let autoFit = true;
   let lastGame: GameState | null = null;
   let tweenHandle = 0;
@@ -108,8 +112,14 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
       minY -= (h2 - h) / 2 / CELL;
       h = h2;
     }
-    w = Math.max(w, CELL * 8);
-    h = Math.max(h, (CELL * 8) / aspect);
+    const scale = Math.max(1, FIT_MIN_W / w);
+    if (scale > 1) {
+      // Раздвигаем кадр вокруг центра, сохраняя аспект.
+      minX -= (w * (scale - 1)) / 2 / CELL;
+      minY -= (h * (scale - 1)) / 2 / CELL;
+      w *= scale;
+      h *= scale;
+    }
     return { x: minX * CELL, y: minY * CELL, w, h };
   }
 
@@ -219,22 +229,29 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
 
   function render(game: GameState, opts: BoardRenderOptions): void {
     lastGame = game;
+    // Разметка принадлежности включается классом на svg — сами кости всегда
+    // несут класс роли, CSS активирует отличие только при включённой галочке.
+    svg.classList.toggle('mark-owners', opts.markOwners);
     // Градиенты и фильтры — в общем скрытом <svg> документа (см. initApp).
     const parts: string[] = [];
 
     // Выложенные кости.
     for (const p of game.placed) {
       const t = parseTile(p.tile);
+      const role = p.by === game.first ? 'by-first' : 'by-second';
       const face = tileFace(p.values[0], p.values[1], {
         accent: p.kind === 'root',
         shadow: p.overlap ? 'raised' : 'tile',
         className: p.seq === opts.animateSeq ? 'just-placed' : '',
       });
+      const owner = opts.markOwners
+        ? ` (${p.by === game.first ? 'первый игрок' : 'второй игрок'})`
+        : '';
       parts.push(
-        `<g transform="${tileTransform(p.cells[0], p.cells[1])}" class="placed kind-${p.kind}">
+        `<g transform="${tileTransform(p.cells[0], p.cells[1])}" class="placed kind-${p.kind} ${role}">
           <title>${t.hi}:${t.lo}${p.kind === 'root' ? ' — корень' : ''}${
             p.kind === 'cross' ? ' — ветка закрыта' : ''
-          }</title>${face}</g>`,
+          }${owner}</title>${face}</g>`,
       );
     }
 
@@ -267,7 +284,8 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     if (opts.selected !== null) {
       for (const m of opts.ghostMoves) {
         if (m.type === 'placeRoot') {
-          parts.push(ghostSvg(game, m, [{ x: 0, y: -0.5 }, { x: 0, y: 0.5 }], 'root', opts));
+          // Как ляжет корень (§6.2): горизонтально, тупик слева.
+          parts.push(ghostSvg(game, m, [{ x: -1, y: 0 }, { x: 0, y: 0 }], 'root', opts));
         } else if (m.type === 'place') {
           const geo = placementGeometry(game, m.tile, m.endId, m.mode);
           parts.push(ghostSvg(game, m, [geo.cells[0], geo.cells[1]], m.mode, opts));

@@ -1,5 +1,5 @@
-# Локальные настройки Claude Code — у каждого свои
-.claude/settings.local.json
+# Служебный каталог Claude Code — локальный, в репозиторий не входит
+.claude/
 
 # macOS
 .DS_Store
@@ -12,3 +12,6 @@ build/
 # Оба лежат локально; резервная копия — вне git.
 IP.md
 CLAUDE.md
+
+# Случайный npx-мусор в корне
+node_modules/

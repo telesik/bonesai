@@ -20,14 +20,17 @@
         </div>
         <div class="topbar-right">
           <div id="score-chips" class="score-chips"></div>
-          <button id="btn-fit" class="icon-btn" title="Показать всю фигуру (двойной клик по столу)">⌖</button>
-          <button id="btn-new" class="icon-btn" title="Новый матч">⟳</button>
+          <button id="btn-hist" class="icon-btn" data-tip="История ходов: перемотка сыгранных партий">⧗</button>
+          <button id="btn-mark" class="icon-btn" data-tip="Разметить принадлежность ходов: кости первого игрока светлее, второго — темнее">◐</button>
+          <button id="btn-fit" class="icon-btn" data-tip="Показать всю фигуру целиком (или двойной клик по столу)">⌖</button>
+          <button id="btn-new" class="icon-btn" data-tip="Начать новый матч">⟳</button>
         </div>
       </header>
       <section id="hand-top" class="hand"></section>
       <main id="table">
         <svg id="board"></svg>
         <div id="boneyard"></div>
+        <div id="history-bar" hidden></div>
         <div id="toast" hidden></div>
       </main>
       <section id="hand-bottom" class="hand"></section>

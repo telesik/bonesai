@@ -44,6 +44,8 @@ export function makeState(opts: {
     occupied: [cellKey({ x: 0, y: 0 })],
     current: opts.current ?? 0,
     first: opts.first ?? 0,
+    seed: 12345,
+    history: [],
     secondRevealed: true,
     mustPlay: null,
     rng: 12345,

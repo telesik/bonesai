@@ -44,6 +44,8 @@ export function newRound(opts: NewRoundOptions): GameState {
     occupied: [],
     current: first,
     first,
+    seed: opts.seed,
+    history: [],
     secondRevealed: false,
     mustPlay: null,
     rng,
@@ -117,16 +119,20 @@ export function placementsForTile(state: GameState, tile: TileId): Move[] {
 
 export function applyMove(state: GameState, move: Move): GameState {
   assertLegal(state, move);
-  switch (move.type) {
-    case 'placeRoot':
-      return applyPlaceRoot(state, move.tile);
-    case 'place':
-      return applyPlace(state, move.tile, move.endId, move.mode);
-    case 'draw':
-      return applyDraw(state);
-    case 'pass':
-      return applyPass(state);
-  }
+  const next = ((): GameState => {
+    switch (move.type) {
+      case 'placeRoot':
+        return applyPlaceRoot(state, move.tile);
+      case 'place':
+        return applyPlace(state, move.tile, move.endId, move.mode);
+      case 'draw':
+        return applyDraw(state);
+      case 'pass':
+        return applyPass(state);
+    }
+  })();
+  // Протокол: каждый применённый ход дописывается в историю партии.
+  return { ...next, history: [...state.history, move] };
 }
 
 /** Структурное равенство ходов: порядок ключей объекта не имеет значения. */
@@ -182,14 +188,15 @@ function withHand(
 
 function applyPlaceRoot(state: GameState, tile: TileId): GameState {
   const v = Number(tile.split('-')[0]);
-  // Корень рисуем поперёк оси роста (классическая стойка дубля), центр в (0,0).
-  // Открытый конец один, растёт на восток (§6.2); западная сторона — тупик.
+  // Корень лежит горизонтально, как на схеме §6.2: «тупик ←── [4|4] ──→ конец».
+  // Следующая кость приставляется справа, встык к короткому торцу.
+  // Открытый конец один, растёт на восток; западная половинка — тупик.
   const placedTile: PlacedTile = {
     tile,
     kind: 'root',
     cells: [
-      { x: 0, y: -0.5 },
-      { x: 0, y: 0.5 },
+      { x: -1, y: 0 },
+      { x: 0, y: 0 },
     ],
     values: [v, v],
     seq: 0,
@@ -212,11 +219,7 @@ function applyPlaceRoot(state: GameState, tile: TileId): GameState {
     hands: withHand(state.hands, state.current, hand),
     placed: [placedTile],
     ends: [rootEnd],
-    occupied: [
-      cellKey({ x: 0, y: -1 }),
-      cellKey({ x: 0, y: 0 }),
-      cellKey({ x: 0, y: 1 }),
-    ],
+    occupied: [cellKey({ x: -1, y: 0 }), cellKey({ x: 0, y: 0 })],
     nextEndId: 1,
     passStreak: 0,
     log: [...state.log, { kind: 'root', player: state.current, tile }],
