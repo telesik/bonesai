@@ -1,4 +1,4 @@
-**English** · [Русский](README.ru.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [中文](README.zh.md)
+**English** · [Русский](README.ru.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Українська](README.uk.md) · [中文](README.zh.md)
 
 # Bonesai
 
@@ -57,8 +57,9 @@ and more people.
 Next: a physical test setup and a digital prototype, then widening the test group. A mode for 3+
 players is deliberately deferred until the two-player game has been implemented.
 
-The name is a working title: it has been checked for conflicts on BoardGameGeek and GitHub, but not
-yet cleared through TMview.
+The name is a working title: it has been checked on BoardGameGeek, GitHub and TMview. There are
+no exact matches, but close “Bonsai” marks in the games class pose a risk for trademark
+registration, so the commercial name is not settled yet.
 
 ## Contact
 

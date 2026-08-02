@@ -3,7 +3,8 @@
 > **Status as of 2026-08-01.** The two-player rules are complete; no open questions remain.
 > The game was invented on the evening of 31 July 2026, and many rounds were played that same
 > evening (§14). Deferred items — §12.
-> “Bonesai” is a working title; the commercial name has not yet been cleared through TMview.
+> “Bonesai” is a working title: TMview shows close “Bonsai” marks in the games class,
+> so the commercial name has not been chosen yet.
 >
 > This is a translation. The Russian text in [RULES.ru.md](RULES.ru.md) is the primary version; if the
 > two ever disagree, the Russian one is correct.

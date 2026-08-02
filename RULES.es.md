@@ -3,8 +3,8 @@
 > **Estado a 2026-08-01.** Las reglas del juego a dos están descritas por completo; no quedan
 > cuestiones abiertas. El juego fue inventado la noche del 31 de julio de 2026, y esa misma noche
 > se jugaron muchos juegos a dos (§14). Lo aplazado — §12.
-> «Bonesai» es un nombre provisional; el nombre comercial aún no está confirmado con una búsqueda
-> en TMview.
+> «Bonesai» es un nombre provisional: en TMview hay marcas cercanas «Bonsai» en la clase de
+> juegos, así que el nombre comercial aún no está elegido.
 >
 > Esto es una traducción. El texto ruso de [RULES.ru.md](RULES.ru.md) es la versión primaria;
 > en caso de discrepancia, prevalece el ruso.

@@ -1,4 +1,4 @@
-[English](README.en.md) · [Русский](README.ru.md) · [Español](README.es.md) · **Deutsch** · [中文](README.zh.md)
+[English](README.en.md) · [Русский](README.ru.md) · [Español](README.es.md) · **Deutsch** · [Українська](README.uk.md) · [中文](README.zh.md)
 
 # Bonesai
 
@@ -60,8 +60,9 @@ Balance braucht es mehr Partien und mehr Menschen.
 Als Nächstes: ein Teststand und ein digitaler Prototyp, danach die Erweiterung der Testgruppe. Der
 Modus für 3+ Spieler ist bewusst zurückgestellt, bis das Spiel zu zweit umgesetzt ist.
 
-Der Name ist ein Arbeitstitel: Die Verfügbarkeit wurde auf BoardGameGeek und GitHub geprüft, die
-Prüfung per TMview steht noch aus.
+Der Name ist ein Arbeitstitel: geprüft auf BoardGameGeek, GitHub und in TMview. Exakte Treffer
+gibt es nicht, doch nahe „Bonsai“-Marken in der Spieleklasse bedeuten ein Risiko für die
+Markeneintragung, daher ist der kommerzielle Name noch nicht festgelegt.
 
 ## Kontakt
 

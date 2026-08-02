@@ -3,7 +3,8 @@
 > **Stand 2026-08-01.** Die Regeln für das Spiel zu zweit sind vollständig beschrieben, offene
 > Fragen gibt es nicht. Das Spiel wurde am Abend des 31. Juli 2026 erfunden; noch am selben Abend
 > wurden viele Partien zu zweit gespielt (§14). Zurückgestelltes — §12.
-> „Bonesai“ ist ein Arbeitstitel; der kommerzielle Name ist noch nicht per TMview geprüft.
+> „Bonesai“ ist ein Arbeitstitel: TMview zeigt nahe „Bonsai“-Marken in der Spieleklasse,
+> daher ist der kommerzielle Name noch nicht gewählt.
 >
 > Dies ist eine Übersetzung. Der russische Text in [RULES.ru.md](RULES.ru.md) ist die Primärfassung;
 > bei Abweichungen gilt der russische.

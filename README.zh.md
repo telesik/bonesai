@@ -1,4 +1,4 @@
-[English](README.en.md) · [Русский](README.ru.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **中文**
+[English](README.en.md) · [Русский](README.ru.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Українська](README.uk.md) · **中文**
 
 # Bonesai
 
@@ -50,7 +50,7 @@
 
 接下来：实体试玩台与数字原型，然后扩大测试群体。3 人及以上模式有意推迟到双人版实现之后。
 
-名称为工作名称：已在 BoardGameGeek 和 GitHub 上核查无冲突，TMview 的核查尚待进行。
+名称为工作名称：已在 BoardGameGeek、GitHub 和 TMview 检索。没有完全相同的商标，但游戏类别中相近的「Bonsai」商标构成注册风险，因此商业名称尚未确定。
 
 ## 联系方式
 

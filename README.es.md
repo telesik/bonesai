@@ -1,4 +1,4 @@
-[English](README.en.md) · [Русский](README.ru.md) · **Español** · [Deutsch](README.de.md) · [中文](README.zh.md)
+[English](README.en.md) · [Русский](README.ru.md) · **Español** · [Deutsch](README.de.md) · [Українська](README.uk.md) · [中文](README.zh.md)
 
 # Bonesai
 
@@ -58,8 +58,9 @@ el equilibrio hacen falta más juegos y más gente.
 Lo siguiente: un banco de pruebas y un prototipo digital, y luego ampliar el grupo de prueba.
 El modo para 3+ jugadores queda aplazado adrede hasta que el juego a dos esté implementado.
 
-El nombre es provisional: la disponibilidad está comprobada en BoardGameGeek y GitHub;
-la búsqueda en TMview aún está pendiente.
+El nombre es provisional: se ha comprobado en BoardGameGeek, GitHub y TMview. No hay
+coincidencias exactas, pero marcas cercanas «Bonsai» en la clase de juegos suponen un riesgo
+para el registro de la marca, así que el nombre comercial aún no está fijado.
 
 ## Contacto
 

@@ -15,9 +15,7 @@ A board game played with an ordinary domino set — under completely different r
 | **Русский** | [README.ru.md](README.ru.md) | [RULES.ru.md](RULES.ru.md) | [LICENSE.ru](LICENSE.ru) |
 | **Español** | [README.es.md](README.es.md) | [RULES.es.md](RULES.es.md) | [LICENSE.es](LICENSE.es) |
 | **Deutsch** | [README.de.md](README.de.md) | [RULES.de.md](RULES.de.md) | [LICENSE.de](LICENSE.de) |
+| **Українська** | [README.uk.md](README.uk.md) | [RULES.uk.md](RULES.uk.md) | [LICENSE.uk](LICENSE.uk) |
 | **中文** | [README.zh.md](README.zh.md) | [RULES.zh.md](RULES.zh.md) | [LICENSE.zh](LICENSE.zh) |
-
-The Russian text is the primary version; translations follow it.
-Русский текст первичен; переводы следуют за ним.
 
 Licence: [CC BY 4.0](LICENSE) · Authors / авторы: **Alexey Kiselyov, Olga Popova**.

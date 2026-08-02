@@ -3,7 +3,7 @@
 // Ссылки на параграфы (§) едины во всех языках — нумерация RULES.md
 // и RULES.en.md совпадает один в один.
 
-export type Locale = 'ru' | 'en' | 'es' | 'de' | 'pt' | 'zh';
+export type Locale = 'ru' | 'en' | 'es' | 'de' | 'pt' | 'uk' | 'zh';
 
 export const LOCALES: ReadonlyArray<{ code: Locale; label: string }> = [
   { code: 'ru', label: 'Русский' },
@@ -11,6 +11,7 @@ export const LOCALES: ReadonlyArray<{ code: Locale; label: string }> = [
   { code: 'es', label: 'Español' },
   { code: 'de', label: 'Deutsch' },
   { code: 'pt', label: 'Português (BR)' },
+  { code: 'uk', label: 'Українська' },
   { code: 'zh', label: '中文' },
 ];
 
@@ -776,7 +777,140 @@ const zh: Dict = {
   rulesWord: (v) => `规则 ${v}`,
 };
 
-const DICTS: Record<Locale, Dict> = { ru, en, es, de, pt, zh };
+
+/** Українська відміна: 1 кістка, 2 кістки, 5 кісток. */
+function ukTiles(n: number): string {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return `${n} кістка`;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return `${n} кістки`;
+  return `${n} кісток`;
+}
+
+const uk: Dict = {
+  tagline:
+    'Доміно, в якому дерево вирощують і підрізають. Руки відкриті, як у шахах; ' +
+    'єдина випадковість — закритий базар. Ходять по черзі за одним екраном.',
+  fieldBottom: 'Нижній гравець',
+  fieldTop: 'Верхній гравець',
+  fieldLang: 'Мова',
+  defaultP1: 'Гравець 1',
+  defaultP2: 'Гравець 2',
+  variantText:
+    'Варіант §11.1 «дубль лише закриває»: дубль не можна ставити прямо — жорсткіше, з пастками.',
+  lotDecides: 'Жереб вирішує, хто ходить першим (§2.5)',
+  lotWinner: (name) => `Менша сума — першим ходить ${name}`,
+  btnLot: 'Кинути жереб',
+  btnStart: 'Почати матч',
+  btnContinue: (label) => `Продовжити матч ${label}`,
+  btnLoadProto: 'Завантажити протокол для розбору…',
+
+  roundChip: (n) => `партія ${n}`,
+  viewChip: (i, n) => `перегляд · партія ${i} з ${n}`,
+  tipHistory: 'Історія ходів: перемотування зіграних партій',
+  tipMark: 'Позначити належність ходів: кістки першого гравця світліші, другого — темніші',
+  tipFit: 'Автомасштаб: тримати все дерево в кадрі (подвійний клік по столу — увімкнути)',
+  tipOrient: 'Кістки в руці: вертикально чи горизонтально',
+  tipTotal: 'Загальний рахунок матчу (§10.5)',
+  tipSound: 'Звук виставляння кісток',
+  tipNew: 'Почати новий матч',
+  tipLang: 'Мова інтерфейсу',
+  confirmNewMatch: 'Покинути поточний матч і почати новий?',
+
+  statusNewRound: 'Нова партія',
+  statusRoundOver: 'Партію завершено',
+  promptRootHasDouble: (name) => `${name}: виставте дубль — він стане коренем партії`,
+  promptRootNoDouble: (name) => `${name}: дубля немає — візьміть кістку з базару`,
+  promptRootDrawn: (name, tile) => `${name}: витягнуто дубль ${tile} — він стає коренем`,
+  promptMustPlay: (name, tile) => `${name}: кістка ${tile} підходить — зобов'язані сходити нею`,
+  promptYourMove: (name) => `${name}: ваш хід — виберіть кістку та місце`,
+  promptDraw: (name) => `${name}: ходити нічим — візьміть кістку з базару`,
+  promptPass: (name) => `${name}: ходити нічим, базар порожній — пас`,
+
+  logRoot: (name, tile) => `${name}: корінь ${tile}`,
+  logPlace: (name, tile, mode) => `${name}: ${tile} ${mode}`,
+  modeStraight: 'прямо',
+  modeTurn: 'на поворот',
+  modeCross: 'упоперек — гілку закрито',
+  logDrawPlayed: (name) => `${name}: кістка з базару — підходить!`,
+  logDrawKept: (name) => `${name}: кістка з базару — в руку, хід далі`,
+  logPass: (name) => `${name}: пас`,
+  logFish: 'Риба!',
+  logOut: 'Вихід!',
+
+  toastNoDrawHaveMove: 'Є хід — брати з базару не можна (§4.2)',
+  toastNoDrawNow: 'Зараз тягнути не можна',
+  toastMustRoot: (tile) => `Витягнутий дубль ${tile} зобов'язаний стати коренем (§5.3)`,
+  toastMustPlay: (tile) => `Зобов'язані сходити витягнутою кісткою ${tile} (§8.2)`,
+  toastPassAuto: (name) => `У ${name} немає ходу — пас`,
+  toastFirstOpen: (name) => `Першим ходить ${name} — руки першого відкриті з роздачі (§2.4)`,
+  toastRoundStart: (n, name) => `Партія ${n}: першим ходить ${name}`,
+  toastMarkOwners: 'Позначення ходів: кістки першого гравця світліші, другого — темніші',
+  toastProtoSaved: 'Протокол збережено файлом JSON',
+  toastProtoChecked: 'Протокол перевірено рушієм: усі ходи легальні',
+  toastProtoLoadFail: (err) => `Не вдалося завантажити протокол: ${err}`,
+  toastProtoBroken: (err) => `Протокол не відтворюється: ${err}`,
+  errNotProto: 'це не протокол Bonesai',
+  errRoundBad: (n, err) => `партія ${n} не відтворюється (${err})`,
+
+  firstChip: 'перший',
+  turnMarkTitle: 'Ходить',
+  handMeta: (n, pts) => `${ukTiles(n)} · ${pts} очк.`,
+  handMetaHidden: (n) => `${ukTiles(n)} · рука закрита до першого ходу`,
+
+  pileCount: (n) => `базар: ${n}`,
+
+  resultFish: 'Риба!',
+  resultOut: (name) => `Вихід: ${name}!`,
+  resultFishSub: 'Кістку не може поставити ніхто (§9.1). Рахуємо очки.',
+  resultOutSub: 'Останню кістку виставлено — рука порожня (§9.2).',
+  resultTieNote: " Суми рівні — очки отримують обидва (§10.3).",
+  resultEmptyHand: 'рука порожня',
+  resultZeroZero: '0:0 останньою кісткою на руці — 25 очок (§10.2).',
+  ptsShort: 'очк.',
+  matchWin: (name) => `Перемога в матчі: ${name}!`,
+  matchDraw: 'Нічия в матчі — рахунки рівні (§10.5)',
+  btnNextRound: 'Наступна партія',
+  btnNewMatch: 'Новий матч',
+  btnHistory: 'Історія ходів',
+  btnDownloadProto: 'Зберегти протокол',
+  nextFirstNote: (name, why) => `Першим ходить ${name} — ${why} (§2.5).`,
+  whyWinner: 'переможець партії',
+  whySwap: 'після нічиєї ролі міняються',
+
+  historyLive: 'Історія ходів матчу',
+  historyExternal: 'Перегляд завантаженого протоколу',
+  historyDeal: (name) => `Роздача — першим ходить ${name}`,
+  historyPos: (k, m) => `хід ${k}/${m}`,
+  roundOptDone: (n, cause, s0, s1) => `Партія ${n} — ${cause}, ${s0}:${s1}`,
+  roundOptLive: (n) => `Партія ${n} — триває`,
+  causeFishShort: 'риба',
+  causeOutShort: 'вихід',
+  tipExitReplay: 'Повернутися до гри',
+  tipRoundSelect: 'Вибір партії матчу',
+  tipToDeal: 'До роздачі',
+  tipStepBack: 'Хід назад',
+  tipStepFwd: 'Хід уперед',
+  tipToEnd: 'До кінця партії',
+  tipDownloadProto: 'Зберегти протокол партій (JSON)',
+
+  ghostRoot: 'Корінь',
+  ghostStraight: 'Прямо',
+  ghostTurn: 'На поворот',
+  ghostCross: 'Закрити гілку',
+  endOpen: (v) => `Відкритий кінець «${v}»`,
+  endFresh: (v) => `Свіжий кінець «${v}»: першу кістку — лише прямо (§6.4)`,
+  endDead: (v) => `Мертвий кінець «${v}»: усі сім кісток із цим числом уже на столі`,
+  tileRootSuffix: ' — корінь',
+  tileClosedSuffix: ' — гілку закрито',
+  ownerFirst: 'перший гравець',
+  ownerSecond: 'другий гравець',
+
+  versionWord: 'версія',
+  rulesWord: (v) => `правила ${v}`,
+};
+
+const DICTS: Record<Locale, Dict> = { ru, en, es, de, pt, uk, zh };
 
 let current: Locale = 'ru';
 
