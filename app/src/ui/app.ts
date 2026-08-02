@@ -9,6 +9,7 @@ import {
   isDouble,
   legalMoves,
   matchProtocol,
+  moveEquals,
   nextRound,
   parseTile,
   pipSum,
@@ -25,7 +26,7 @@ import {
   type TileId,
   type Variant,
 } from '../engine';
-import { createBoard } from './board';
+import { createBoard, samePlacement } from './board';
 import { detectLocale, getLocale, L, LOCALES, setLocale, type Locale } from './i18n';
 import { isSoundEnabled, playDraw, playPlace, playShuffle, setSoundEnabled } from './sound';
 import { tileBack, tileDefs, tileFace, tileSvgElement } from './tile-svg';
@@ -82,15 +83,23 @@ export function initApp(): void {
   const elToast = $('#toast');
   const elOverlay = $('#overlay');
   const elHistoryBar = $('#history-bar');
+  const elTutorBar = $('#tutor-bar');
+  const elConfirmBar = $('#confirm-bar');
   const elBtnHist = $('#btn-hist');
   const elBtnMark = $('#btn-mark');
   const elBtnFit = $('#btn-fit');
   const elBtnNew = $('#btn-new');
+  const elBtnTutor = $('#btn-tutor');
+  const elBtnConfirm = $('#btn-confirm');
   const svgBoard = document.querySelector<SVGSVGElement>('#board')!;
 
   // --- Состояние ---------------------------------------------------------------
   let match: MatchState | null = null;
   let selected: TileId | null = null;
+  /** Ход, ожидающий подтверждения (режим подтверждения ходов). */
+  let pending: Move | null = null;
+  /** Момент выбора черновика: гасит случайный двойной клик как «подтверждение». */
+  let pendingAt = 0;
   let pileSprites: PileSprite[] = [];
   let pileRoundKey = -1;
   let animateSeq: number | null = null;
@@ -117,6 +126,8 @@ export function initApp(): void {
   let autoFitOn = true;
   let soundOn = false;
   let handsVertical = true;
+  let confirmOn = false;
+  let tutorOn = false;
   try {
     const prefs = JSON.parse(localStorage.getItem(LS_UI_KEY) ?? '{}') as {
       markOwners?: boolean;
@@ -124,11 +135,15 @@ export function initApp(): void {
       sound?: boolean;
       locale?: string;
       handsVertical?: boolean;
+      confirm?: boolean;
+      tutor?: boolean;
     };
     markOwners = !!prefs.markOwners;
     autoFitOn = prefs.autoFit !== false;
     soundOn = !!prefs.sound;
     handsVertical = prefs.handsVertical !== false;
+    confirmOn = !!prefs.confirm;
+    tutorOn = !!prefs.tutor;
     setLocale(detectLocale(prefs.locale ?? null));
   } catch {
     setLocale(detectLocale(null));
@@ -145,6 +160,8 @@ export function initApp(): void {
           sound: soundOn,
           locale: getLocale(),
           handsVertical,
+          confirm: confirmOn,
+          tutor: tutorOn,
         }),
       );
     } catch {
@@ -156,6 +173,21 @@ export function initApp(): void {
     onMove(move) {
       if (replay) return;
       if (performance.now() - lastDispatchAt < 300) return;
+      // Режим подтверждения: клик по тени лишь выбирает ход; ставит его
+      // повторный клик по той же тени или кнопка подтверждения.
+      if (confirmOn && (move.type === 'place' || move.type === 'placeRoot')) {
+        if (pending && samePlacement(move, pending)) {
+          // Повторный клик подтверждает, но не раньше 350 мс после выбора:
+          // иначе случайный двойной клик обходил бы весь смысл режима.
+          if (performance.now() - pendingAt < 350) return;
+          dispatch(pending);
+        } else {
+          pending = move;
+          pendingAt = performance.now();
+          renderAll();
+        }
+        return;
+      }
       dispatch(move);
     },
     onViewChange(auto) {
@@ -281,6 +313,7 @@ export function initApp(): void {
     }
     match = { ...match, round };
     selected = null;
+    pending = null;
     lastDispatchAt = performance.now();
     animateSeq =
       move.type === 'place' || move.type === 'placeRoot' ? round.placed.length - 1 : null;
@@ -305,12 +338,16 @@ export function initApp(): void {
 
   function renderAll(): void {
     if (replay) {
+      elTutorBar.hidden = true;
+      elConfirmBar.hidden = true;
       renderReplayView();
       return;
     }
     elHistoryBar.hidden = true;
     elBtnHist.classList.remove('active');
     if (!match) {
+      elTutorBar.hidden = true;
+      elConfirmBar.hidden = true;
       renderStartScreen();
       return;
     }
@@ -324,6 +361,8 @@ export function initApp(): void {
     renderHand(1, round, legal);
     renderBoneyard(round, legal);
     renderBoard(round, legal);
+    renderTutorBar(round, legal);
+    renderConfirmBar(round, legal);
     renderOverlay(round);
     scheduleAutoPass(round, legal);
     animateSeq = null;
@@ -345,6 +384,10 @@ export function initApp(): void {
     );
     if (selected && !placeable.has(selected)) selected = null;
     if (!selected && placeable.size === 1) selected = [...placeable][0]!;
+    // Черновик хода живёт, только пока выбрана его кость.
+    if (pending && pending.type !== 'draw' && pending.type !== 'pass' && pending.tile !== selected) {
+      pending = null;
+    }
   }
 
   function renderTopbar(round: GameState): void {
@@ -542,20 +585,104 @@ export function initApp(): void {
   }
 
   function renderBoard(round: GameState, legal: readonly Move[]): void {
+    // Поворот показываем двумя тенями — по одной на каждую сторону изгиба
+    // (§6.3: на правила сторона не влияет, это выбор раскладки).
     const ghostMoves =
       selected === null
         ? []
-        : legal.filter(
-            (m) => (m.type === 'place' || m.type === 'placeRoot') && m.tile === selected,
-          );
+        : legal
+            .filter(
+              (m) => (m.type === 'place' || m.type === 'placeRoot') && m.tile === selected,
+            )
+            .flatMap((m) =>
+              m.type === 'place' && m.mode === 'turn'
+                ? [
+                    { ...m, side: 0 as const },
+                    { ...m, side: 1 as const },
+                  ]
+                : [m],
+            );
     board.render(round, {
       ghostMoves,
       selected,
       animateSeq,
       interactive: round.phase !== 'over',
       markOwners,
+      pending,
     });
   }
+
+  // --- Режим обучения и подтверждение хода -----------------------------------------
+
+  /** Подсказка режима обучения: что сейчас можно сделать и как. */
+  function tutorText(round: GameState, legal: readonly Move[]): string {
+    if (round.phase === 'over') return L().tutorOver;
+    if (pending) return L().tutorPending;
+    if (round.phase === 'root') {
+      if (round.mustPlay) return L().tutorRootMustPlay;
+      return round.hands[round.current].some(isDouble)
+        ? L().tutorRootHasDouble
+        : L().tutorRootNoDouble;
+    }
+    const placements = legal.filter(
+      (m): m is Extract<Move, { type: 'place' }> => m.type === 'place',
+    );
+    if (placements.length === 0) {
+      return round.boneyard.length > 0 ? L().tutorDraw : L().tutorPass;
+    }
+    const base = round.mustPlay ? L().tutorMustPlay : L().tutorPick;
+    const hasTurn = placements.some(
+      (m) => m.mode === 'turn' && (selected === null || m.tile === selected),
+    );
+    return hasTurn ? `${base} ${L().tutorTurnSides}` : base;
+  }
+
+  function renderTutorBar(round: GameState, legal: readonly Move[]): void {
+    if (!tutorOn) {
+      elTutorBar.hidden = true;
+      return;
+    }
+    elTutorBar.textContent = tutorText(round, legal);
+    elTutorBar.hidden = false;
+  }
+
+  function renderConfirmBar(round: GameState, legal: readonly Move[]): void {
+    // Самолечение: черновик обязан оставаться легальным ходом (смена партии,
+    // загрузка протокола и т.п. делают его устаревшим).
+    if (pending && !legal.some((m) => moveEquals(m, pending!))) pending = null;
+    if (!pending || round.phase === 'over') {
+      elConfirmBar.hidden = true;
+      return;
+    }
+    const q =
+      pending.type === 'placeRoot'
+        ? L().confirmRootAsk(tileLabel(pending.tile))
+        : pending.type === 'place'
+          ? L().confirmAsk(
+              tileLabel(pending.tile),
+              pending.mode === 'straight'
+                ? L().modeStraight
+                : pending.mode === 'turn'
+                  ? L().modeTurn
+                  : L().modeCross,
+            )
+          : '';
+    elConfirmBar.innerHTML =
+      `<span class="confirm-q">${esc(q)}</span>` +
+      `<button id="confirm-yes" class="confirm-btn yes">${esc(L().confirmYes)}</button>` +
+      `<button id="confirm-no" class="confirm-btn no">${esc(L().confirmNo)}</button>`;
+    elConfirmBar.hidden = false;
+  }
+
+  elConfirmBar.addEventListener('click', (ev) => {
+    const t = ev.target as HTMLElement;
+    if (t.id === 'confirm-yes' && pending) {
+      dispatch(pending);
+    } else if (t.id === 'confirm-no') {
+      pending = null;
+      renderAll();
+    }
+  });
 
   function scheduleAutoPass(round: GameState, legal: readonly Move[]): void {
     clearTimeout(autoPassTimer);
@@ -869,6 +996,7 @@ export function initApp(): void {
     const variant = { doubleOnlyCloses: ($('#inp-variant') as HTMLInputElement).checked };
     match = startMatch({ names: [n0, n1], first: lotFirst, variant });
     selected = null;
+    pending = null;
     pileRoundKey = -1;
     showRoundOver = false;
     board.setAutoFit(autoFitOn, false);
@@ -1057,6 +1185,7 @@ export function initApp(): void {
         if (saved) {
           match = saved;
           selected = null;
+          pending = null;
           pileRoundKey = -1;
           showRoundOver = match.round.phase === 'over';
           elOverlay.hidden = true;
@@ -1067,6 +1196,7 @@ export function initApp(): void {
         if (!match) return;
         match = nextRound(match, seedFromCrypto());
         selected = null;
+        pending = null;
         pileRoundKey = -1;
         showRoundOver = false;
         board.setAutoFit(autoFitOn, false);
@@ -1078,6 +1208,7 @@ export function initApp(): void {
         match = null;
         lotFirst = null;
         replay = null;
+        pending = null;
         localStorage.removeItem(LS_KEY);
         renderAll();
       } else if (action === 'history') {
@@ -1172,6 +1303,23 @@ export function initApp(): void {
     if (soundOn) playPlace('straight');
   });
 
+  // Режим обучения: панель-подсказка над столом.
+  elBtnTutor.addEventListener('click', () => {
+    tutorOn = !tutorOn;
+    elBtnTutor.classList.toggle('active', tutorOn);
+    persistUi();
+    renderAll();
+  });
+
+  // Подтверждение хода: клик по тени выбирает, ставится после подтверждения.
+  elBtnConfirm.addEventListener('click', () => {
+    confirmOn = !confirmOn;
+    if (!confirmOn) pending = null;
+    elBtnConfirm.classList.toggle('active', confirmOn);
+    persistUi();
+    renderAll();
+  });
+
   // Ориентация костей в руке: вертикально (по умолчанию) или горизонтально.
   const elBtnOrient = $('#btn-orient');
   elBtnOrient.addEventListener('click', () => {
@@ -1188,6 +1336,7 @@ export function initApp(): void {
     match = null;
     lotFirst = null;
     replay = null;
+    pending = null;
     localStorage.removeItem(LS_KEY);
     renderAll();
   });
@@ -1200,6 +1349,8 @@ export function initApp(): void {
     elBtnOrient.dataset.tip = L().tipOrient;
     elBtnSound.dataset.tip = L().tipSound;
     elBtnNew.dataset.tip = L().tipNew;
+    elBtnTutor.dataset.tip = L().tipTutor;
+    elBtnConfirm.dataset.tip = L().tipConfirm;
     const langSel = document.querySelector<HTMLSelectElement>('#lang-select');
     if (langSel) {
       // В шапке — компактные коды (ru, en, …); полные названия — на старте.
@@ -1218,6 +1369,8 @@ export function initApp(): void {
   elBtnFit.classList.toggle('active', autoFitOn);
   elBtnSound.classList.toggle('active', soundOn);
   elBtnSound.classList.toggle('muted', !soundOn);
+  elBtnTutor.classList.toggle('active', tutorOn);
+  elBtnConfirm.classList.toggle('active', confirmOn);
   elBtnOrient.textContent = handsVertical ? '▯' : '▭';
   board.setAutoFit(autoFitOn, false);
 

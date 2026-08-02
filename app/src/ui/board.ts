@@ -37,6 +37,20 @@ export interface BoardRenderOptions {
   interactive: boolean;
   /** Разметка принадлежности: кости первого игрока светлее, второго — темнее. */
   markOwners: boolean;
+  /** Ход, ожидающий подтверждения: его призрак подсвечивается. */
+  pending?: Move | null;
+}
+
+/** Совпадение хода с ожидающим подтверждения (включая сторону поворота). */
+export function samePlacement(a: Move, b: Move): boolean {
+  if (a.type !== b.type) return false;
+  if (a.type === 'placeRoot') return a.tile === (b as typeof a).tile;
+  if (a.type === 'place' && b.type === 'place') {
+    return (
+      a.tile === b.tile && a.endId === b.endId && a.mode === b.mode && a.side === b.side
+    );
+  }
+  return false;
 }
 
 const MIN_W = CELL * 5;
@@ -202,7 +216,9 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     { passive: false },
   );
 
-  svg.addEventListener('dblclick', () => {
+  svg.addEventListener('dblclick', (ev) => {
+    // Двойной клик по призраку — это работа с ходом, а не с камерой.
+    if ((ev.target as Element).closest('[data-move]')) return;
     autoFit = true;
     fit();
     hooks.onViewChange(true);
@@ -299,7 +315,7 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
           lastGhostCells.push({ x: -1, y: 0 }, { x: 0, y: 0 });
           parts.push(ghostSvg(game, m, [{ x: -1, y: 0 }, { x: 0, y: 0 }], 'root', opts));
         } else if (m.type === 'place') {
-          const geo = placementGeometry(game, m.tile, m.endId, m.mode);
+          const geo = placementGeometry(game, m.tile, m.endId, m.mode, m.side);
           lastGhostCells.push(geo.cells[0], geo.cells[1]);
           parts.push(ghostSvg(game, m, [geo.cells[0], geo.cells[1]], m.mode, opts));
         }
@@ -336,7 +352,7 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     const values: [number, number] =
       move.type === 'place'
         ? (() => {
-            const geo = placementGeometry(game, move.tile, move.endId, move.mode);
+            const geo = placementGeometry(game, move.tile, move.endId, move.mode, move.side);
             return [geo.values[0], geo.values[1]];
           })()
         : (() => {
@@ -346,9 +362,10 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     const dataMove = opts.interactive
       ? `data-move='${JSON.stringify(move).replace(/'/g, '&#39;')}'`
       : '';
+    const pending = opts.pending && samePlacement(move, opts.pending) ? ' pending' : '';
     // Пипсы призрака — реальные значения кости после выставления.
     return `
-    <g transform="${tileTransform(cells[0], cells[1])}" class="ghost ghost-${mode}" ${dataMove}>
+    <g transform="${tileTransform(cells[0], cells[1])}" class="ghost ghost-${mode}${pending}" ${dataMove}>
       <title>${modeLabel(mode)}</title>
       <rect x="${-TILE_L / 2}" y="${-TILE_W / 2}" width="${TILE_L}" height="${TILE_W}"
         rx="${TILE_R}" class="ghost-body"/>

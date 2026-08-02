@@ -1085,3 +1085,102 @@ hr.sep {
     bottom: 2px;
   }
 }
+
+/* ------------------------------------------------- обучение и подтверждение */
+
+#tutor-bar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(720px, 94%);
+  background: rgba(16, 22, 19, 0.94);
+  border: 1px solid rgba(201, 168, 106, 0.4);
+  border-radius: 12px;
+  padding: 8px 14px;
+  z-index: 14;
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(239, 230, 208, 0.92);
+}
+
+#tutor-bar[hidden] {
+  display: none;
+}
+
+#confirm-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(16, 22, 19, 0.94);
+  border: 1px solid var(--gold-soft);
+  border-radius: 12px;
+  padding: 8px 12px;
+  z-index: 15;
+  box-shadow: var(--shadow);
+  max-width: 94%;
+}
+
+#confirm-bar[hidden] {
+  display: none;
+}
+
+.confirm-q {
+  font-size: 14px;
+  color: rgba(239, 230, 208, 0.95);
+}
+
+.confirm-btn {
+  border: 1px solid var(--gold-soft);
+  background: rgba(201, 168, 106, 0.12);
+  color: var(--gold);
+  border-radius: 9px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.confirm-btn.yes {
+  background: rgba(201, 168, 106, 0.28);
+  border-color: var(--gold);
+}
+
+.confirm-btn:hover {
+  background: rgba(201, 168, 106, 0.35);
+}
+
+/* Черновик хода: тень выбрана и ждёт подтверждения. */
+.ghost.pending .ghost-body {
+  fill: rgba(201, 168, 106, 0.3);
+  stroke: var(--gold);
+  stroke-dasharray: none;
+  stroke-width: 2;
+}
+
+.ghost.pending .ghost-pip {
+  fill: rgba(239, 230, 208, 0.85);
+}
+
+@media (max-width: 700px) {
+  #tutor-bar {
+    top: 6px;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  #confirm-bar {
+    bottom: 8px;
+    padding: 6px 8px;
+    gap: 6px;
+  }
+
+  .confirm-q {
+    font-size: 13px;
+  }
+}
