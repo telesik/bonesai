@@ -11,11 +11,12 @@ import {
   type Vec,
 } from '../engine';
 import { CELL, tileFace, TILE_L, TILE_W, TILE_R } from './tile-svg';
+import { L } from './i18n';
 
 export interface BoardHooks {
   onMove(move: Move): void;
-  /** Пользователь сам подвигал/зумил стол — отключить автоподгонку. */
-  onManualView(): void;
+  /** Автомасштаб переключился: false — пользователь подвигал/зумил стол сам. */
+  onViewChange(auto: boolean): void;
 }
 
 interface ViewBox {
@@ -162,7 +163,7 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
   const endDrag = (): void => {
     if (dragging && moved) {
       autoFit = false;
-      hooks.onManualView();
+      hooks.onViewChange(false);
     }
     dragging = false;
   };
@@ -188,7 +189,7 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
       };
       applyViewBox();
       autoFit = false;
-      hooks.onManualView();
+      hooks.onViewChange(false);
     },
     { passive: false },
   );
@@ -196,6 +197,7 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
   svg.addEventListener('dblclick', () => {
     autoFit = true;
     fit();
+    hooks.onViewChange(true);
   });
 
   svg.addEventListener('click', (ev) => {
@@ -245,12 +247,12 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
         className: p.seq === opts.animateSeq ? 'just-placed' : '',
       });
       const owner = opts.markOwners
-        ? ` (${p.by === game.first ? 'первый игрок' : 'второй игрок'})`
+        ? ` (${p.by === game.first ? L().ownerFirst : L().ownerSecond})`
         : '';
       parts.push(
         `<g transform="${tileTransform(p.cells[0], p.cells[1])}" class="placed kind-${p.kind} ${role}">
-          <title>${t.hi}:${t.lo}${p.kind === 'root' ? ' — корень' : ''}${
-            p.kind === 'cross' ? ' — ветка закрыта' : ''
+          <title>${t.hi}:${t.lo}${p.kind === 'root' ? L().tileRootSuffix : ''}${
+            p.kind === 'cross' ? L().tileClosedSuffix : ''
           }${owner}</title>${face}</g>`,
       );
     }
@@ -263,10 +265,10 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
       const isDead = dead.has(e.value);
       const cls = `end-marker${e.fresh ? ' fresh' : ''}${isDead ? ' dead' : ''}`;
       const hint = isDead
-        ? `Мёртвый конец «${e.value}»: все семь костей с этим числом уже на столе`
+        ? L().endDead(e.value)
         : e.fresh
-          ? `Свежий конец «${e.value}»: первую кость — только прямо (§6.4)`
-          : `Открытый конец «${e.value}»`;
+          ? L().endFresh(e.value)
+          : L().endOpen(e.value);
       parts.push(
         `<g class="${cls}" transform="translate(${x} ${y})">
           <title>${hint}</title>
@@ -298,12 +300,20 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     if (autoFit) fit(game.placed.length > 1);
   }
 
-  const MODE_LABEL: Record<string, string> = {
-    root: 'Корень',
-    straight: 'Прямо',
-    turn: 'На поворот',
-    cross: 'Закрыть ветку',
-  };
+  function modeLabel(mode: string): string {
+    switch (mode) {
+      case 'root':
+        return L().ghostRoot;
+      case 'straight':
+        return L().ghostStraight;
+      case 'turn':
+        return L().ghostTurn;
+      case 'cross':
+        return L().ghostCross;
+      default:
+        return mode;
+    }
+  }
 
   function ghostSvg(
     game: GameState,
@@ -328,7 +338,7 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     // Пипсы призрака — реальные значения кости после выставления.
     return `
     <g transform="${tileTransform(cells[0], cells[1])}" class="ghost ghost-${mode}" ${dataMove}>
-      <title>${MODE_LABEL[mode] ?? mode}</title>
+      <title>${modeLabel(mode)}</title>
       <rect x="${-TILE_L / 2}" y="${-TILE_W / 2}" width="${TILE_L}" height="${TILE_W}"
         rx="${TILE_R}" class="ghost-body"/>
       <line x1="0" y1="${-TILE_W / 2 + 7}" x2="0" y2="${TILE_W / 2 - 7}" class="ghost-divider"/>
@@ -369,6 +379,11 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     fit(animate = true): void {
       autoFit = true;
       fit(animate);
+    },
+    /** Явно включить/выключить автомасштаб (галочка в шапке). */
+    setAutoFit(on: boolean, animate = true): void {
+      autoFit = on;
+      if (on) fit(animate);
     },
     isAutoFit: () => autoFit,
   };

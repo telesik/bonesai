@@ -26,6 +26,8 @@ import {
   type Variant,
 } from '../engine';
 import { createBoard } from './board';
+import { detectLocale, getLocale, L, LOCALES, setLocale, type Locale } from './i18n';
+import { isSoundEnabled, playDraw, playPlace, setSoundEnabled } from './sound';
 import { tileBack, tileDefs, tileFace, tileSvgElement } from './tile-svg';
 
 const LS_KEY = 'bonesai-match-v1';
@@ -54,13 +56,16 @@ export function initApp(): void {
 
   // Бейдж версии в правом нижнем углу: версия приложения, версия правил
   // (ссылка на опубликованную запись) и коммит сборки — для разбора багов.
-  const appVersion = __APP_VERSION__.split('.').slice(0, 2).join('.');
   const badge = document.createElement('div');
   badge.id = 'version-badge';
-  badge.innerHTML =
-    `версия ${appVersion} (<a href="${RULES_URL}" target="_blank" rel="noopener">` +
-    `правила ${RULES_VERSION}</a>, hashCommit=${__GIT_HASH__})`;
   document.body.appendChild(badge);
+
+  function updateBadge(): void {
+    const appVersion = __APP_VERSION__.split('.').slice(0, 2).join('.');
+    badge.innerHTML =
+      `${L().versionWord} ${appVersion} (<a href="${RULES_URL}" target="_blank" rel="noopener">` +
+      `${L().rulesWord(RULES_VERSION)}</a>, hashCommit=${__GIT_HASH__})`;
+  }
 
   // --- DOM ------------------------------------------------------------------
   const $ = <T extends HTMLElement = HTMLElement>(sel: string): T => {
@@ -108,17 +113,30 @@ export function initApp(): void {
 
   // Настройки вида (переживают перезагрузку).
   let markOwners = false;
+  let autoFitOn = true;
+  let soundOn = false;
   try {
-    markOwners = !!(JSON.parse(localStorage.getItem(LS_UI_KEY) ?? '{}') as {
+    const prefs = JSON.parse(localStorage.getItem(LS_UI_KEY) ?? '{}') as {
       markOwners?: boolean;
-    }).markOwners;
+      autoFit?: boolean;
+      sound?: boolean;
+      locale?: string;
+    };
+    markOwners = !!prefs.markOwners;
+    autoFitOn = prefs.autoFit !== false;
+    soundOn = !!prefs.sound;
+    setLocale(detectLocale(prefs.locale ?? null));
   } catch {
-    /* ignore */
+    setLocale(detectLocale(null));
   }
+  setSoundEnabled(soundOn);
 
   function persistUi(): void {
     try {
-      localStorage.setItem(LS_UI_KEY, JSON.stringify({ markOwners }));
+      localStorage.setItem(
+        LS_UI_KEY,
+        JSON.stringify({ markOwners, autoFit: autoFitOn, sound: soundOn, locale: getLocale() }),
+      );
     } catch {
       /* ignore */
     }
@@ -130,14 +148,17 @@ export function initApp(): void {
       if (performance.now() - lastDispatchAt < 300) return;
       dispatch(move);
     },
-    onManualView() {
-      elBtnFit.classList.remove('active');
+    onViewChange(auto) {
+      autoFitOn = auto;
+      persistUi();
+      elBtnFit.classList.toggle('active', auto);
     },
   });
 
   // --- Утилиты -----------------------------------------------------------------
 
-  const nameOf = (p: 0 | 1): string => match?.names[p] ?? `Игрок ${p + 1}`;
+  const nameOf = (p: 0 | 1): string =>
+    match?.names[p] ?? (p === 0 ? L().defaultP1 : L().defaultP2);
   const tileLabel = (t: TileId): string => t.replace('-', ':');
   const esc = (s: string): string =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -253,6 +274,9 @@ export function initApp(): void {
     lastDispatchAt = performance.now();
     animateSeq =
       move.type === 'place' || move.type === 'placeRoot' ? round.placed.length - 1 : null;
+    if (animateSeq !== null) {
+      playPlace(round.placed[animateSeq]!.kind);
+    }
 
     if (round.phase === 'over') {
       match = finishRound(match);
@@ -315,7 +339,9 @@ export function initApp(): void {
 
   function renderTopbar(round: GameState): void {
     if (!match) return;
-    elRoundChip.textContent = `партия ${match.rounds.length + (round.phase === 'over' ? 0 : 1)}`;
+    elRoundChip.textContent = L().roundChip(
+      match.rounds.length + (round.phase === 'over' ? 0 : 1),
+    );
     const chips = ([0, 1] as const)
       .map((p) => {
         const turn = round.phase !== 'over' && round.current === p;
@@ -335,55 +361,51 @@ export function initApp(): void {
   function describeLog(e: LogEntry, names: readonly [string, string]): string {
     switch (e.kind) {
       case 'root':
-        return `${names[e.player]}: корень ${tileLabel(e.tile)}`;
+        return L().logRoot(names[e.player], tileLabel(e.tile));
       case 'place': {
         const mode =
-          e.mode === 'straight' ? 'прямо' : e.mode === 'turn' ? 'на поворот' : 'поперёк — ветка закрыта';
-        return `${names[e.player]}: ${tileLabel(e.tile)} ${mode}`;
+          e.mode === 'straight'
+            ? L().modeStraight
+            : e.mode === 'turn'
+              ? L().modeTurn
+              : L().modeCross;
+        return L().logPlace(names[e.player], tileLabel(e.tile), mode);
       }
       case 'draw':
-        return e.played
-          ? `${names[e.player]}: кость из базара — подходит!`
-          : `${names[e.player]}: кость из базара — в руку, ход дальше`;
+        return e.played ? L().logDrawPlayed(names[e.player]) : L().logDrawKept(names[e.player]);
       case 'pass':
-        return `${names[e.player]}: пас`;
+        return L().logPass(names[e.player]);
       case 'end':
-        return e.cause === 'fish' ? 'Рыба!' : 'Выход!';
+        return e.cause === 'fish' ? L().logFish : L().logOut;
     }
   }
 
   function statusTexts(round: GameState): { event: string; prompt: string } {
     const last = round.log[round.log.length - 1];
-    const event = last ? describeLog(last, match!.names) : 'Новая партия';
+    const event = last ? describeLog(last, match!.names) : L().statusNewRound;
     if (round.phase === 'over') {
-      return { event, prompt: 'Партия окончена' };
+      return { event, prompt: L().statusRoundOver };
     }
     const name = `<b>${esc(nameOf(round.current))}</b>`;
     if (round.phase === 'root') {
       if (round.mustPlay) {
-        return {
-          event,
-          prompt: `${name}: вытянут дубль ${tileLabel(round.mustPlay)} — он становится корнем`,
-        };
+        return { event, prompt: L().promptRootDrawn(name, tileLabel(round.mustPlay)) };
       }
       const hasDouble = round.hands[round.current].some(isDouble);
       return hasDouble
-        ? { event, prompt: `${name}: выставьте дубль — он станет корнем партии` }
-        : { event, prompt: `${name}: дубля нет — возьмите кость из базара` };
+        ? { event, prompt: L().promptRootHasDouble(name) }
+        : { event, prompt: L().promptRootNoDouble(name) };
     }
     if (round.mustPlay) {
-      return {
-        event,
-        prompt: `${name}: кость ${tileLabel(round.mustPlay)} подходит — обязаны сходить ею`,
-      };
+      return { event, prompt: L().promptMustPlay(name, tileLabel(round.mustPlay)) };
     }
     const anyPlacement = legalMoves(round).some((m) => m.type === 'place');
     if (anyPlacement) {
-      return { event, prompt: `${name}: ваш ход — выберите кость и место` };
+      return { event, prompt: L().promptYourMove(name) };
     }
     return round.boneyard.length > 0
-      ? { event, prompt: `${name}: сходить нечем — возьмите кость из базара` }
-      : { event, prompt: `${name}: сходить нечем, базар пуст — пас` };
+      ? { event, prompt: L().promptDraw(name) }
+      : { event, prompt: L().promptPass(name) };
   }
 
   /** Режим просмотра руки в истории: активен «ходивший», всё открыто, без кликов. */
@@ -429,14 +451,12 @@ export function initApp(): void {
     const meta = `
       <div class="hand-meta">
         <div class="hand-name">${
-          isActive ? '<span class="turn-mark" title="Ходит">☞</span>' : ''
+          isActive ? `<span class="turn-mark" title="${L().turnMarkTitle}">☞</span>` : ''
         }${
-          round.first === player ? '<span class="first-chip">первый</span>' : ''
+          round.first === player ? `<span class="first-chip">${L().firstChip}</span>` : ''
         }${esc(name)}</div>
         <div class="hand-sum">${
-          hidden
-            ? `${hand.length} кост${plural(hand.length)} · рука закрыта до первого хода`
-            : `${hand.length} кост${plural(hand.length)} · ${handSum(hand)} очк.`
+          hidden ? L().handMetaHidden(hand.length) : L().handMeta(hand.length, handSum(hand))
         }</div>
       </div>`;
 
@@ -466,14 +486,6 @@ export function initApp(): void {
     el.innerHTML = `${meta}<div class="hand-tiles">${tiles}</div>`;
   }
 
-  function plural(n: number): string {
-    const m10 = n % 10;
-    const m100 = n % 100;
-    if (m10 === 1 && m100 !== 11) return 'ь';
-    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'и';
-    return 'ей';
-  }
-
   function renderBoneyard(round: GameState, legal: readonly Move[]): void {
     const canDraw = legal.some((m) => m.type === 'draw');
     elBoneyard.classList.toggle('can-draw', canDraw);
@@ -492,7 +504,7 @@ export function initApp(): void {
       })
       .join('');
     const count = round.boneyard.length;
-    elBoneyard.innerHTML = `${tiles}<div class="pile-count">базар: ${count}</div>`;
+    elBoneyard.innerHTML = `${tiles}<div class="pile-count">${L().pileCount(count)}</div>`;
   }
 
   function renderBoard(round: GameState, legal: readonly Move[]): void {
@@ -519,7 +531,7 @@ export function initApp(): void {
       // любой промежуточный рендер сбрасывает clearTimeout выше.
       if (autoPassForLog !== round.log.length) {
         autoPassForLog = round.log.length;
-        toast(`У ${nameOf(round.current)} нет хода — пас`);
+        toast(L().toastPassAuto(nameOf(round.current)));
       }
       autoPassTimer = window.setTimeout(() => dispatch({ type: 'pass' }), 1300);
     }
@@ -569,7 +581,7 @@ export function initApp(): void {
     try {
       state = replayRound(round, rp.data.variant, rp.step);
     } catch (err) {
-      toast(`Протокол не воспроизводится: ${(err as Error).message}`, true);
+      toast(L().toastProtoBroken((err as Error).message), true);
       exitReplay();
       return;
     }
@@ -582,7 +594,7 @@ export function initApp(): void {
       lastLog && 'player' in lastLog ? lastLog.player : null;
 
     elBtnHist.classList.add('active');
-    elRoundChip.textContent = `просмотр · партия ${rp.roundIdx + 1} из ${rp.data.rounds.length}`;
+    elRoundChip.textContent = L().viewChip(rp.roundIdx + 1, rp.data.rounds.length);
     elScoreChips.innerHTML = ([0, 1] as const)
       .map(
         (p) =>
@@ -591,12 +603,10 @@ export function initApp(): void {
           )}</span>`,
       )
       .join('<span class="vs">·</span>');
-    elStatusEvent.textContent = rp.data.external
-      ? 'Просмотр загруженного протокола'
-      : 'История ходов матча';
+    elStatusEvent.textContent = rp.data.external ? L().historyExternal : L().historyLive;
     elStatusPrompt.innerHTML =
       rp.step === 0
-        ? `Раздача — первым ходит <b>${esc(rp.data.names[round.first])}</b>`
+        ? L().historyDeal(`<b>${esc(rp.data.names[round.first])}</b>`)
         : lastLog
           ? esc(describeLog(lastLog, rp.data.names))
           : '';
@@ -640,7 +650,7 @@ export function initApp(): void {
         </div>`);
       }
     }
-    elBoneyard.innerHTML = `${tiles.join('')}<div class="pile-count">базар: ${count}</div>`;
+    elBoneyard.innerHTML = `${tiles.join('')}<div class="pile-count">${L().pileCount(count)}</div>`;
   }
 
   function renderHistoryBar(
@@ -655,26 +665,31 @@ export function initApp(): void {
         .map((r, i) => {
           const res = r.result;
           const label = res
-            ? `Партия ${i + 1} — ${res.cause === 'fish' ? 'рыба' : 'выход'}, ${res.sums[0]}:${res.sums[1]}`
-            : `Партия ${i + 1} — идёт`;
+            ? L().roundOptDone(
+                i + 1,
+                res.cause === 'fish' ? L().causeFishShort : L().causeOutShort,
+                res.sums[0],
+                res.sums[1],
+              )
+            : L().roundOptLive(i + 1);
           return `<option value="${i}" ${i === rp.roundIdx ? 'selected' : ''}>${label}</option>`;
         })
         .join('');
       elHistoryBar.innerHTML = `
-        <button class="icon-btn" data-action="replay-exit" data-tip="Вернуться к игре">✕</button>
-        <select id="replay-round" data-tip="Выбор партии матча">${options}</select>
-        <button class="icon-btn" data-action="replay-first" data-tip="К раздаче">⏮</button>
-        <button class="icon-btn" data-action="replay-prev" data-tip="Ход назад">◀</button>
+        <button class="icon-btn" data-action="replay-exit" data-tip="${L().tipExitReplay}">✕</button>
+        <select id="replay-round" data-tip="${L().tipRoundSelect}">${options}</select>
+        <button class="icon-btn" data-action="replay-first" data-tip="${L().tipToDeal}">⏮</button>
+        <button class="icon-btn" data-action="replay-prev" data-tip="${L().tipStepBack}">◀</button>
         <input type="range" id="replay-slider" min="0" max="${total}" step="1" value="${rp.step}">
-        <button class="icon-btn" data-action="replay-next" data-tip="Ход вперёд">▶</button>
-        <button class="icon-btn" data-action="replay-last" data-tip="К концу партии">⏭</button>
+        <button class="icon-btn" data-action="replay-next" data-tip="${L().tipStepFwd}">▶</button>
+        <button class="icon-btn" data-action="replay-last" data-tip="${L().tipToEnd}">⏭</button>
         <span id="replay-pos" class="replay-pos"></span>
-        <button class="icon-btn" data-action="download-protocol" data-tip="Скачать протокол партий (JSON)">⭳</button>`;
+        <button class="icon-btn" data-action="download-protocol" data-tip="${L().tipDownloadProto}">⭳</button>`;
     }
     const slider = document.querySelector<HTMLInputElement>('#replay-slider');
     if (slider && slider.value !== String(rp.step)) slider.value = String(rp.step);
     const pos = document.querySelector<HTMLElement>('#replay-pos');
-    if (pos) pos.textContent = `ход ${rp.step}/${total}`;
+    if (pos) pos.textContent = L().historyPos(rp.step, total);
   }
 
   /** Скачать протокол матча (или открытый внешний протокол) файлом JSON. */
@@ -700,7 +715,7 @@ export function initApp(): void {
     a.download = `bonesai-${stamp}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast('Протокол сохранён файлом JSON');
+    toast(L().toastProtoSaved);
   }
 
   /** Загрузить протокол из файла: проверить воспроизведением и открыть просмотр. */
@@ -713,18 +728,18 @@ export function initApp(): void {
         !Array.isArray(data.rounds) ||
         data.rounds.length === 0
       ) {
-        throw new Error('это не протокол Bonesai');
+        throw new Error(L().errNotProto);
       }
       const variant: Variant = { doubleOnlyCloses: !!data.variant?.doubleOnlyCloses };
       const check = validateProtocol({ ...data, variant });
       if (!check.ok) {
-        throw new Error(`партия ${check.round + 1} не воспроизводится (${check.error})`);
+        throw new Error(L().errRoundBad(check.round + 1, check.error));
       }
       replay = {
         data: {
           names: [
-            String(data.names?.[0] ?? 'Игрок 1'),
-            String(data.names?.[1] ?? 'Игрок 2'),
+            String(data.names?.[0] ?? L().defaultP1),
+            String(data.names?.[1] ?? L().defaultP2),
           ],
           variant,
           rounds: data.rounds,
@@ -734,9 +749,9 @@ export function initApp(): void {
         step: 0,
       };
       renderAll();
-      toast('Протокол проверен движком: все ходы легальны');
+      toast(L().toastProtoChecked);
     } catch (err) {
-      toast(`Не удалось загрузить протокол: ${(err as Error).message}`, true);
+      toast(L().toastProtoLoadFail((err as Error).message), true);
     }
   }
 
@@ -755,32 +770,37 @@ export function initApp(): void {
     const saved = loadSaved();
     const savedInfo =
       saved && !saved.outcome
-        ? `<button class="btn ghost-btn" data-action="continue">Продолжить матч ${esc(
-            saved.names[0],
-          )} ${saved.totals[0]}:${saved.totals[1]} ${esc(saved.names[1])}</button>`
+        ? `<button class="btn ghost-btn" data-action="continue">${L().btnContinue(
+            `${esc(saved.names[0])} ${saved.totals[0]}:${saved.totals[1]} ${esc(saved.names[1])}`,
+          )}</button>`
         : '';
+    const langOptions = LOCALES.map(
+      ({ code, label }) =>
+        `<option value="${code}" ${code === getLocale() ? 'selected' : ''}>${label}</option>`,
+    ).join('');
     elOverlay.innerHTML = `
       <div class="card">
         <h1><span class="gold">B</span>onesai</h1>
-        <p class="sub">Домино, в котором дерево растят и подрезают. Руки открыты, как в шахматах;
-        единственная случайность — закрытый базар. Ходят по очереди за одним экраном.</p>
-        <div class="field"><label for="inp-n0">Нижний игрок</label>
-          <input id="inp-n0" type="text" value="Алексей" maxlength="16"></div>
-        <div class="field"><label for="inp-n1">Верхний игрок</label>
-          <input id="inp-n1" type="text" value="Олечка" maxlength="16"></div>
+        <p class="sub">${L().tagline}</p>
+        <div class="field"><label for="inp-n0">${L().fieldBottom}</label>
+          <input id="inp-n0" type="text" value="${getLocale() === 'ru' ? 'Алексей' : L().defaultP1}" maxlength="16"></div>
+        <div class="field"><label for="inp-n1">${L().fieldTop}</label>
+          <input id="inp-n1" type="text" value="${getLocale() === 'ru' ? 'Олечка' : L().defaultP2}" maxlength="16"></div>
+        <div class="field"><label for="inp-lang">${L().fieldLang}</label>
+          <select id="inp-lang" class="lang-select">${langOptions}</select></div>
         <label class="check"><input id="inp-variant" type="checkbox">
-          Вариант §11.1 «дубль только закрывает»: дубль нельзя ставить прямо — жёстче, с ловушками.
+          ${L().variantText}
         </label>
         <hr class="sep">
-        <div class="lot-result" id="lot-result">Жребий решает, кто ходит первым (§2.5)</div>
+        <div class="lot-result" id="lot-result">${L().lotDecides}</div>
         <div class="lot-row" id="lot-row"></div>
         <div class="btn-row">
-          <button class="btn" data-action="lot">Бросить жребий</button>
-          <button class="btn" data-action="start" disabled id="btn-start">Начать матч</button>
+          <button class="btn" data-action="lot">${L().btnLot}</button>
+          <button class="btn" data-action="start" disabled id="btn-start">${L().btnStart}</button>
           ${savedInfo}
         </div>
         <div class="btn-row">
-          <button class="btn ghost-btn" data-action="load-protocol">Загрузить протокол для разбора…</button>
+          <button class="btn ghost-btn" data-action="load-protocol">${L().btnLoadProto}</button>
           <input id="inp-protocol" type="file" accept=".json,application/json" hidden>
         </div>
       </div>`;
@@ -799,8 +819,8 @@ export function initApp(): void {
       b = set[Math.floor(Math.random() * set.length)]!;
     }
     lotFirst = pipSum(a) < pipSum(b) ? 0 : 1;
-    const n0 = ($('#inp-n0') as HTMLInputElement).value.trim() || 'Игрок 1';
-    const n1 = ($('#inp-n1') as HTMLInputElement).value.trim() || 'Игрок 2';
+    const n0 = ($('#inp-n0') as HTMLInputElement).value.trim() || L().defaultP1;
+    const n1 = ($('#inp-n1') as HTMLInputElement).value.trim() || L().defaultP2;
     const ta = parseTile(a);
     const tb = parseTile(b);
     $('#lot-row').innerHTML = `
@@ -812,25 +832,23 @@ export function initApp(): void {
         ${tileSvgElement(tileFace(tb.hi, tb.lo, { shadow: 'flat' }), 92, { extraClass: 'lot-tile' })}
         <span>${esc(n1)} — ${pipSum(b)}</span>
       </div>`;
-    $('#lot-result').innerHTML = `Меньшая сумма — первым ходит <b>${esc(
-      lotFirst === 0 ? n0 : n1,
-    )}</b>`;
+    $('#lot-result').innerHTML = L().lotWinner(`<b>${esc(lotFirst === 0 ? n0 : n1)}</b>`);
     ($('#btn-start') as HTMLButtonElement).disabled = false;
   }
 
   function startNewMatch(): void {
     if (lotFirst === null) return;
-    const n0 = ($('#inp-n0') as HTMLInputElement).value.trim() || 'Игрок 1';
-    const n1 = ($('#inp-n1') as HTMLInputElement).value.trim() || 'Игрок 2';
+    const n0 = ($('#inp-n0') as HTMLInputElement).value.trim() || L().defaultP1;
+    const n1 = ($('#inp-n1') as HTMLInputElement).value.trim() || L().defaultP2;
     const variant = { doubleOnlyCloses: ($('#inp-variant') as HTMLInputElement).checked };
     match = startMatch({ names: [n0, n1], first: lotFirst, variant });
     selected = null;
     pileRoundKey = -1;
     showRoundOver = false;
-    board.fit(false);
+    board.setAutoFit(autoFitOn, false);
     persist();
     renderAll();
-    toast(`Первым ходит ${nameOf(lotFirst)} — руки первого открыты с раздачи (§2.4)`);
+    toast(L().toastFirstOpen(nameOf(lotFirst)));
   }
 
   function renderRoundOver(): void {
@@ -839,11 +857,8 @@ export function initApp(): void {
     const result = round.result!;
     const lastRound = match.rounds[match.rounds.length - 1]!;
     const causeTitle =
-      result.cause === 'out' ? `Выход: ${esc(nameOf(result.winner as 0 | 1))}!` : 'Рыба!';
-    const causeSub =
-      result.cause === 'out'
-        ? 'Последняя кость выставлена — рука пуста (§9.2).'
-        : 'Кость не может поставить никто (§9.1). Считаем очки.';
+      result.cause === 'out' ? L().resultOut(esc(nameOf(result.winner as 0 | 1))) : L().resultFish;
+    const causeSub = result.cause === 'out' ? L().resultOutSub : L().resultFishSub;
 
     const rows = ([0, 1] as const)
       .map((p) => {
@@ -858,13 +873,15 @@ export function initApp(): void {
         const added = result.added[p];
         return `
           <div class="result-name">${esc(nameOf(p))}</div>
-          <div class="result-pts"><b>${result.sums[p]}</b> очк. ·
+          <div class="result-pts"><b>${result.sums[p]}</b> ${L().ptsShort} ·
             ${added > 0 ? `<span class="plus">+${added}</span>` : '<span class="zero">+0</span>'}
           </div>
-          <div class="result-tiles">${tiles || '<span class="result-note">рука пуста</span>'}</div>
+          <div class="result-tiles">${
+            tiles || `<span class="result-note">${L().resultEmptyHand}</span>`
+          }</div>
           ${
             zeroZero
-              ? '<p class="result-note" style="grid-column:1/-1">0:0 последней костью на руке — 25 очков (§10.2).</p>'
+              ? `<p class="result-note" style="grid-column:1/-1">${L().resultZeroZero}</p>`
               : ''
           }`;
       })
@@ -874,36 +891,34 @@ export function initApp(): void {
     let footer: string;
     const reviewRow = `
         <div class="btn-row">
-          <button class="btn ghost-btn" data-action="history">История ходов</button>
-          <button class="btn ghost-btn" data-action="download-protocol">Скачать протокол</button>
+          <button class="btn ghost-btn" data-action="history">${L().btnHistory}</button>
+          <button class="btn ghost-btn" data-action="download-protocol">${L().btnDownloadProto}</button>
         </div>`;
     if (outcome) {
       const title =
         outcome.kind === 'draw'
-          ? 'Ничья в матче — счёты равны (§10.5)'
-          : `Победа в матче: ${esc(nameOf((1 - outcome.loser) as 0 | 1))}!`;
+          ? L().matchDraw
+          : L().matchWin(esc(nameOf((1 - outcome.loser) as 0 | 1)));
       footer = `
         <hr class="sep">
         <h2>${title}</h2>
         <div class="btn-row">
-          <button class="btn" data-action="new-match">Новый матч</button>
+          <button class="btn" data-action="new-match">${L().btnNewMatch}</button>
         </div>${reviewRow}`;
     } else {
       const nextFirst = lastRound.winner ?? ((1 - lastRound.first) as 0 | 1);
-      const why = lastRound.winner !== null ? 'победитель партии' : 'после ничьей роли меняются';
+      const why = lastRound.winner !== null ? L().whyWinner : L().whySwap;
       footer = `
         <div class="btn-row">
-          <button class="btn" data-action="next-round">Следующая партия</button>
-          <span class="result-note">Первым ходит ${esc(nameOf(nextFirst))} — ${why} (§2.5).</span>
+          <button class="btn" data-action="next-round">${L().btnNextRound}</button>
+          <span class="result-note">${L().nextFirstNote(esc(nameOf(nextFirst)), why)}</span>
         </div>${reviewRow}`;
     }
 
     elOverlay.innerHTML = `
       <div class="card">
         <h2>${causeTitle}</h2>
-        <p class="sub">${causeSub}${
-          result.winner === null ? ' Суммы равны — очки получают оба (§10.3).' : ''
-        }</p>
+        <p class="sub">${causeSub}${result.winner === null ? L().resultTieNote : ''}</p>
         <div class="result-grid">${rows}</div>
         <div class="match-score">${esc(nameOf(0))} ${match.totals[0]} : ${match.totals[1]} ${esc(
           nameOf(1),
@@ -925,12 +940,7 @@ export function initApp(): void {
       void elBoneyard.offsetWidth;
       elBoneyard.classList.add('shake');
       const anyPlacement = legal.some((m) => m.type === 'place' || m.type === 'placeRoot');
-      toast(
-        anyPlacement
-          ? 'Есть ход — брать из базара нельзя (§4.2)'
-          : 'Сейчас тянуть нельзя',
-        true,
-      );
+      toast(anyPlacement ? L().toastNoDrawHaveMove : L().toastNoDrawNow, true);
       return;
     }
 
@@ -940,6 +950,7 @@ export function initApp(): void {
     const sprite = pileSprites[spriteIdx];
     if (sprite) sprite.alive = false;
     dispatch({ type: 'draw' });
+    playDraw();
     // Что вытянулось — из лога.
     const entry = match.round.log[match.round.log.length - 1];
     if (!entry || entry.kind !== 'draw') return;
@@ -988,8 +999,8 @@ export function initApp(): void {
       if (round.mustPlay && tile !== round.mustPlay) {
         toast(
           round.phase === 'root'
-            ? `Вытянутый дубль ${tileLabel(round.mustPlay)} обязан стать корнем (§5.3)`
-            : `Обязаны сходить вытянутой костью ${tileLabel(round.mustPlay)} (§8.2)`,
+            ? L().toastMustRoot(tileLabel(round.mustPlay))
+            : L().toastMustPlay(tileLabel(round.mustPlay)),
           true,
         );
         return;
@@ -1022,7 +1033,7 @@ export function initApp(): void {
           pileRoundKey = -1;
           showRoundOver = match.round.phase === 'over';
           elOverlay.hidden = true;
-          board.fit(false);
+          board.setAutoFit(autoFitOn, false);
           renderAll();
         }
       } else if (action === 'next-round') {
@@ -1031,10 +1042,10 @@ export function initApp(): void {
         selected = null;
         pileRoundKey = -1;
         showRoundOver = false;
-        board.fit(false);
+        board.setAutoFit(autoFitOn, false);
         persist();
         renderAll();
-        toast(`Партия ${match.rounds.length + 1}: первым ходит ${nameOf(match.first)}`);
+        toast(L().toastRoundStart(match.rounds.length + 1, nameOf(match.first)));
       } else if (action === 'new-match') {
         match = null;
         lotFirst = null;
@@ -1084,6 +1095,17 @@ export function initApp(): void {
     } else if (t.id === 'inp-protocol' && t.files?.[0]) {
       void importProtocol(t.files[0]);
       t.value = '';
+    } else if (t.id === 'inp-lang' || t.id === 'lang-select') {
+      setLocale(t.value as Locale);
+      persistUi();
+      applyStaticTexts();
+      // Обе выпадашки языка держим согласованными.
+      document
+        .querySelectorAll<HTMLSelectElement>('#inp-lang, #lang-select')
+        .forEach((s) => {
+          s.value = getLocale();
+        });
+      renderAll();
     }
   });
 
@@ -1103,14 +1125,27 @@ export function initApp(): void {
     }
   });
 
+  // Галочка «автомасштаб»: включена — держим всё дерево в кадре.
   elBtnFit.addEventListener('click', () => {
-    board.fit();
-    elBtnFit.classList.add('active');
+    autoFitOn = !autoFitOn;
+    board.setAutoFit(autoFitOn);
+    elBtnFit.classList.toggle('active', autoFitOn);
+    persistUi();
+  });
+
+  const elBtnSound = $('#btn-sound');
+  elBtnSound.addEventListener('click', () => {
+    soundOn = !soundOn;
+    setSoundEnabled(soundOn);
+    elBtnSound.classList.toggle('active', soundOn);
+    elBtnSound.textContent = soundOn ? '♪' : '♩';
+    persistUi();
+    if (soundOn) playPlace('straight');
   });
 
   elBtnNew.addEventListener('click', () => {
     if (match && !match.outcome) {
-      if (!window.confirm('Бросить текущий матч и начать новый?')) return;
+      if (!window.confirm(L().confirmNewMatch)) return;
     }
     match = null;
     lotFirst = null;
@@ -1119,7 +1154,31 @@ export function initApp(): void {
     renderAll();
   });
 
+  /** Локализуемые статические элементы: подсказки кнопок, бейдж, селект языка. */
+  function applyStaticTexts(): void {
+    elBtnHist.dataset.tip = L().tipHistory;
+    elBtnMark.dataset.tip = L().tipMark;
+    elBtnFit.dataset.tip = L().tipFit;
+    elBtnSound.dataset.tip = L().tipSound;
+    elBtnNew.dataset.tip = L().tipNew;
+    const langSel = document.querySelector<HTMLSelectElement>('#lang-select');
+    if (langSel) {
+      langSel.dataset.tip = L().tipLang;
+      langSel.innerHTML = LOCALES.map(
+        ({ code, label }) =>
+          `<option value="${code}" ${code === getLocale() ? 'selected' : ''}>${label}</option>`,
+      ).join('');
+    }
+    updateBadge();
+  }
+
   // --- Старт -----------------------------------------------------------------------
+
+  applyStaticTexts();
+  elBtnFit.classList.toggle('active', autoFitOn);
+  elBtnSound.classList.toggle('active', soundOn);
+  elBtnSound.textContent = soundOn ? '♪' : '♩';
+  board.setAutoFit(autoFitOn, false);
 
   try {
     renderAll();

@@ -161,6 +161,23 @@ body {
   border-color: var(--gold);
 }
 
+.lang-select {
+  appearance: none;
+  background: var(--panel-2);
+  color: var(--ivory-dim);
+  border: 1px solid rgba(201, 168, 106, 0.25);
+  border-radius: 8px;
+  height: 34px;
+  padding: 0 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.lang-select:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
 .icon-btn.active {
   color: var(--gold);
   border-color: var(--gold);
