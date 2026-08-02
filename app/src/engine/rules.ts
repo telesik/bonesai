@@ -1,21 +1,18 @@
 // Правила игры: перечисление легальных ходов и применение хода.
 // Ссылки на параграфы — RULES.md.
 
-import { fullSet, hasValue, isDouble, otherValue, type TileId } from './tiles';
+import { fullSet, hasValue, isDouble, type TileId } from './tiles';
 import { nextInt, shuffle, type RngState } from './rng';
 import {
-  add,
   cellKey,
-  DIR,
-  perps,
   type End,
   type GameState,
   type LogEntry,
   type Move,
   type PlacedTile,
   type Variant,
-  type Vec,
 } from './state';
+import { placementGeometry, resolveOverlaps, ROOT_CELLS, rootEnd } from './layout';
 import { scoreRound } from './score';
 
 // ---------------------------------------------------------------------------
@@ -124,7 +121,7 @@ export function applyMove(state: GameState, move: Move): GameState {
       case 'placeRoot':
         return applyPlaceRoot(state, move.tile);
       case 'place':
-        return applyPlace(state, move.tile, move.endId, move.mode);
+        return applyPlace(state, move.tile, move.endId, move.mode, move.side);
       case 'draw':
         return applyDraw(state);
       case 'pass':
@@ -132,7 +129,12 @@ export function applyMove(state: GameState, move: Move): GameState {
     }
   })();
   // Протокол: каждый применённый ход дописывается в историю партии.
-  return { ...next, history: [...state.history, move] };
+  const withHistory: GameState = { ...next, history: [...state.history, move] };
+  // Наложение веток — повод переложить стол (§6.3: раскладка правилам безразлична).
+  if (move.type === 'place' || move.type === 'placeRoot') {
+    return resolveOverlaps(withHistory);
+  }
+  return withHistory;
 }
 
 /** Структурное равенство ходов: порядок ключей объекта не имеет значения. */
@@ -191,26 +193,14 @@ function applyPlaceRoot(state: GameState, tile: TileId): GameState {
   // Корень лежит горизонтально, как на схеме §6.2: «тупик ←── [4|4] ──→ конец».
   // Следующая кость приставляется справа, встык к короткому торцу.
   // Открытый конец один, растёт на восток; западная половинка — тупик.
+  // Константы геометрии — в layout.ts, ими же пользуется перекладка веток.
   const placedTile: PlacedTile = {
     tile,
     kind: 'root',
-    cells: [
-      { x: -1, y: 0 },
-      { x: 0, y: 0 },
-    ],
+    cells: ROOT_CELLS,
     values: [v, v],
     seq: 0,
     by: state.current,
-  };
-  const rootEnd: End = {
-    id: 0,
-    value: v,
-    attach: { x: 1, y: 0 },
-    dir: DIR.E,
-    // fresh=false: поворот от корня разрешён (§6.6), а закрыть корень первой
-    // костью нельзя физически — второй дубль этого числа не существует.
-    fresh: false,
-    fromSeq: 0,
   };
   const hand = removeFromHand(state.hands[state.current], tile);
   const next: GameState = {
@@ -218,8 +208,8 @@ function applyPlaceRoot(state: GameState, tile: TileId): GameState {
     phase: 'main',
     hands: withHand(state.hands, state.current, hand),
     placed: [placedTile],
-    ends: [rootEnd],
-    occupied: [cellKey({ x: -1, y: 0 }), cellKey({ x: 0, y: 0 })],
+    ends: [rootEnd(v)],
+    occupied: ROOT_CELLS.map(cellKey),
     nextEndId: 1,
     passStreak: 0,
     log: [...state.log, { kind: 'root', player: state.current, tile }],
@@ -230,88 +220,17 @@ function applyPlaceRoot(state: GameState, tile: TileId): GameState {
 }
 
 // --- Выставление кости (§6–§7) ----------------------------------------------
-
-export interface PlacementGeometry {
-  readonly kind: 'straight' | 'turn' | 'cross';
-  readonly cells: readonly [Vec, Vec];
-  readonly values: readonly [number, number];
-  readonly newEnds: readonly Omit<End, 'id'>[];
-  /** Клетки, которые займёт кость (для cross — с консервативными боковыми). */
-  readonly claimed: readonly Vec[];
-}
-
-/**
- * Геометрия выставления кости: где лягут половинки и какие концы возникнут.
- * Детерминирована по состоянию — UI использует её для «призраков» ходов,
- * applyMove кладёт кость ровно так же.
- */
-export function placementGeometry(
-  state: GameState,
-  tile: TileId,
-  endId: number,
-  mode: 'straight' | 'turn' | 'cross',
-): PlacementGeometry {
-  const end = state.ends.find((e) => e.id === endId);
-  if (!end) throw new Error(`Конец ${endId} не найден`);
-  const occ = new Set(state.occupied);
-  const A = end.attach;
-  const d = end.dir;
-  const seq = state.placed.length;
-
-  if (mode === 'straight') {
-    // Прямо (§6.3): соединяющая половинка закрывает старый конец,
-    // свободная становится новым концом. Дубль прямо сохраняет число (§7.1).
-    const w = otherValue(tile, end.value);
-    const B = add(A, d);
-    return {
-      kind: 'straight',
-      cells: [A, B],
-      values: [end.value, w],
-      newEnds: [
-        { value: w, attach: add(A, d, 2), dir: d, fresh: false, fromSeq: seq },
-      ],
-      claimed: [A, B],
-    };
-  }
-  if (mode === 'turn') {
-    // На поворот (§6.3): развилка. Соединяющая половинка — в клетке A по ходу
-    // ветки, свободная уходит вбок. Прямой конец сохраняет старое число и
-    // направление, поворотный растёт под 90°. Оба конца развилки свежие (§6.4).
-    const w = otherValue(tile, end.value);
-    const s = chooseTurnSide(occ, A, d);
-    const B = add(A, s);
-    return {
-      kind: 'turn',
-      cells: [A, B],
-      values: [end.value, w],
-      newEnds: [
-        { value: end.value, attach: add(A, d), dir: d, fresh: true, fromSeq: seq },
-        { value: w, attach: add(A, s, 2), dir: s, fresh: true, fromSeq: seq },
-      ],
-      claimed: [A, B],
-    };
-  }
-  // Поперёк (§7.1): дубль ложится поперёк ветки и закрывает её. Конец не
-  // порождается. Боковые клетки блокируем консервативно: кость физически
-  // перекрывает их наполовину.
-  const [p] = perps(d);
-  return {
-    kind: 'cross',
-    cells: [add(A, p, -0.5), add(A, p, 0.5)],
-    values: [end.value, end.value],
-    newEnds: [],
-    claimed: [A, add(A, p), add(A, p, -1)],
-  };
-}
+// Геометрия (placementGeometry) и перекладка веток — в layout.ts.
 
 function applyPlace(
   state: GameState,
   tile: TileId,
   endId: number,
   mode: 'straight' | 'turn' | 'cross',
+  side?: 0 | 1,
 ): GameState {
   const end = state.ends.find((e) => e.id === endId)!;
-  const geo = placementGeometry(state, tile, endId, mode);
+  const geo = placementGeometry(state, tile, endId, mode, side);
   const occ = new Set(state.occupied);
   const seq = state.placed.length;
   let nextEndId = state.nextEndId;
@@ -346,43 +265,6 @@ function applyPlace(
     ],
   };
   return finishPlacement(next);
-}
-
-/**
- * Выбор стороны для поворота. На правила не влияет (§6.3): выбираем сторону,
- * где больше свободного места, при равенстве — уводящую от центра фигуры.
- */
-function chooseTurnSide(occ: ReadonlySet<string>, A: Vec, d: Vec): Vec {
-  const [p1, p2] = perps(d);
-  const run = (s: Vec): number => {
-    let k = 0;
-    for (let i = 1; i <= 6; i++) {
-      if (occ.has(cellKey(add(A, s, i)))) break;
-      k++;
-    }
-    return k;
-  };
-  const r1 = run(p1);
-  const r2 = run(p2);
-  if (r1 !== r2) return r1 > r2 ? p1 : p2;
-  // Центроид занятых клеток: растём наружу.
-  let cx = 0;
-  let cy = 0;
-  let n = 0;
-  for (const key of occ) {
-    const [x, y] = key.split(',').map(Number) as [number, number];
-    cx += x;
-    cy += y;
-    n++;
-  }
-  if (n > 0) {
-    cx /= n;
-    cy /= n;
-    const away1 = (A.x + p1.x - cx) * p1.x + (A.y + p1.y - cy) * p1.y;
-    const away2 = (A.x + p2.x - cx) * p2.x + (A.y + p2.y - cy) * p2.y;
-    if (away1 !== away2) return away1 > away2 ? p1 : p2;
-  }
-  return p1;
 }
 
 /** После любого выставления: выход (§9.2), затем рыба (§9.1), иначе ход дальше. */

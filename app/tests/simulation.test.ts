@@ -86,6 +86,10 @@ function runMany(variant: typeof BASE, seeds: number[], label: string): void {
     stats.rounds++;
   }
   expect(stats.safetyFish).toBe(0);
+  // Перекладка веток (layout.ts) обязана разводить наложения: на этих сидах
+  // решение существует всегда. Если ассерт упал после правок раскладки —
+  // сначала проверить, не сломан ли перебор сторон.
+  expect(stats.overlaps).toBe(0);
   // eslint-disable-next-line no-console
   console.log(
     `[${label}] партий=${stats.rounds} рыба=${stats.fish} выход=${stats.out} ` +

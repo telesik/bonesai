@@ -131,6 +131,13 @@ export type Move =
       readonly tile: TileId;
       readonly endId: number;
       readonly mode: 'straight' | 'turn' | 'cross';
+      /**
+       * Сторона поворота (mode='turn'): индекс в perps(dir) конца. Правилам
+       * безразлична (§6.3) — влияет только на раскладку. Необязательна: без неё
+       * сторона выбирается автоматически по свободному месту. Пишется в
+       * протокол, чтобы раскладка воспроизводилась при реплее один в один.
+       */
+      readonly side?: 0 | 1;
     }
   | { readonly type: 'draw' }
   | { readonly type: 'pass' };
@@ -150,10 +157,10 @@ export function add(a: Vec, b: Vec, k = 1): Vec {
   return { x: a.x + b.x * k, y: a.y + b.y * k };
 }
 
-/** Два перпендикуляра к направлению. */
+/** Два перпендикуляра к направлению. «| 0» убирает минус-ноль из координат. */
 export function perps(d: Vec): [Vec, Vec] {
   return [
-    { x: d.y, y: -d.x },
-    { x: -d.y, y: d.x },
+    { x: d.y | 0, y: -d.x | 0 },
+    { x: -d.y | 0, y: d.x | 0 },
   ];
 }
