@@ -5,7 +5,7 @@
 > evening (§14). Deferred items — §12.
 > “Bonesai” is a working title; the commercial name has not yet been cleared through TMview.
 >
-> This is a translation. The Russian text in [RULES.md](RULES.md) is the primary version; if the
+> This is a translation. The Russian text in [RULES.ru.md](RULES.ru.md) is the primary version; if the
 > two ever disagree, the Russian one is correct.
 >
 > Published version 1.0, with a permanent identifier:

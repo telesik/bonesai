@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Собирает PDF правил Bonesai из RULES.md и RULES.en.md.
+"""Собирает PDF правил Bonesai из RULES.ru.md и RULES.en.md.
 
 Использование:
     python3 tools/build-pdf.py          — собрать обе версии
@@ -122,7 +122,7 @@ fork against closure.
 
 LANGS = {
     "ru": {
-        "src": "RULES.md",
+        "src": "RULES.ru.md",
         "out": "bonesai-rules.pdf",
         "html_lang": "ru",
         "subtitle": "Настольная игра на обычном наборе домино",
