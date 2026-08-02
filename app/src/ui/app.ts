@@ -27,7 +27,7 @@ import {
 } from '../engine';
 import { createBoard } from './board';
 import { detectLocale, getLocale, L, LOCALES, setLocale, type Locale } from './i18n';
-import { isSoundEnabled, playDraw, playPlace, setSoundEnabled } from './sound';
+import { isSoundEnabled, playDraw, playPlace, playShuffle, setSoundEnabled } from './sound';
 import { tileBack, tileDefs, tileFace, tileSvgElement } from './tile-svg';
 
 const LS_KEY = 'bonesai-match-v1';
@@ -874,6 +874,7 @@ export function initApp(): void {
     board.setAutoFit(autoFitOn, false);
     persist();
     renderAll();
+    playShuffle();
     toast(L().toastFirstOpen(nameOf(lotFirst)));
   }
 
@@ -1071,6 +1072,7 @@ export function initApp(): void {
         board.setAutoFit(autoFitOn, false);
         persist();
         renderAll();
+        playShuffle();
         toast(L().toastRoundStart(match.rounds.length + 1, nameOf(match.first)));
       } else if (action === 'new-match') {
         match = null;
