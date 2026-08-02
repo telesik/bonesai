@@ -7,9 +7,11 @@ import {
   fullSet,
   handSum,
   isDouble,
+  chooseBotMove,
   legalMoves,
   matchProtocol,
   moveEquals,
+  shuffleLayout,
   nextRound,
   parseTile,
   pipSum,
@@ -21,6 +23,7 @@ import {
   type LogEntry,
   type MatchProtocol,
   type MatchState,
+  type BotLevel,
   type Move,
   type RoundProtocol,
   type TileId,
@@ -87,6 +90,7 @@ export function initApp(): void {
   const elConfirmBar = $('#confirm-bar');
   const elBtnHist = $('#btn-hist');
   const elBtnMark = $('#btn-mark');
+  const elBtnRelayout = $('#btn-relayout');
   const elBtnFit = $('#btn-fit');
   const elBtnNew = $('#btn-new');
   const elBtnTutor = $('#btn-tutor');
@@ -128,6 +132,8 @@ export function initApp(): void {
   let handsVertical = true;
   let confirmOn = false;
   let tutorOn = false;
+  type OpponentPref = 'human' | BotLevel;
+  let opponentPref: OpponentPref = 'human';
   try {
     const prefs = JSON.parse(localStorage.getItem(LS_UI_KEY) ?? '{}') as {
       markOwners?: boolean;
@@ -137,6 +143,7 @@ export function initApp(): void {
       handsVertical?: boolean;
       confirm?: boolean;
       tutor?: boolean;
+      opponent?: string;
     };
     markOwners = !!prefs.markOwners;
     autoFitOn = prefs.autoFit !== false;
@@ -144,6 +151,9 @@ export function initApp(): void {
     handsVertical = prefs.handsVertical !== false;
     confirmOn = !!prefs.confirm;
     tutorOn = !!prefs.tutor;
+    if (['human', 'easy', 'normal', 'strong'].includes(prefs.opponent ?? '')) {
+      opponentPref = prefs.opponent as OpponentPref;
+    }
     setLocale(detectLocale(prefs.locale ?? null));
   } catch {
     setLocale(detectLocale(null));
@@ -162,6 +172,7 @@ export function initApp(): void {
           handsVertical,
           confirm: confirmOn,
           tutor: tutorOn,
+          opponent: opponentPref,
         }),
       );
     } catch {
@@ -171,7 +182,7 @@ export function initApp(): void {
 
   const board = createBoard(svgBoard, {
     onMove(move) {
-      if (replay) return;
+      if (replay || botsTurn()) return;
       if (performance.now() - lastDispatchAt < 300) return;
       // Режим подтверждения: клик по тени лишь выбирает ход; ставит его
       // повторный клик по той же тени или кнопка подтверждения.
@@ -250,7 +261,10 @@ export function initApp(): void {
         Array.isArray(r.ends) &&
         typeof r.seed === 'number' &&
         Array.isArray(r.history) &&
-        Array.isArray(m.rounds);
+        Array.isArray(m.rounds) &&
+        (m.bot == null ||
+          ((m.bot.player === 0 || m.bot.player === 1) &&
+            ['easy', 'normal', 'strong'].includes(m.bot.level)));
       return ok ? m : drop();
     } catch {
       return drop();
@@ -295,7 +309,41 @@ export function initApp(): void {
     for (let i = 0; i < dead; i++) pileSprites[i]!.alive = false;
   }
 
-  // --- Основной дисп��тчер --------------------------------------------------------
+  // --- Бот -------------------------------------------------------------------
+
+  /** Сейчас очередь бота: человеку клики по игровым элементам недоступны. */
+  function botsTurn(): boolean {
+    return (
+      !replay &&
+      !!match &&
+      match.bot != null &&
+      match.round.phase !== 'over' &&
+      match.round.current === match.bot.player
+    );
+  }
+
+  let botTimer = 0;
+
+  /** Ход бота с человеческой паузой. Вызывается после каждого рендера. */
+  function scheduleBotMove(): void {
+    clearTimeout(botTimer);
+    if (!botsTurn()) return;
+    botTimer = window.setTimeout(() => {
+      if (!botsTurn() || !match) return;
+      try {
+        const move = chooseBotMove(match.round, {
+          level: match.bot!.level,
+          totals: match.totals,
+        });
+        if (move.type === 'draw') playDraw();
+        dispatch(move);
+      } catch (err) {
+        console.error(err);
+      }
+    }, 750);
+  }
+
+  // --- Основной диспетчер --------------------------------------------------------
 
   // Метка последнего применённого хода: гасит второй клик двойного клика,
   // прилетающий уже в перерисованный DOM (куча базара, призраки).
@@ -340,6 +388,7 @@ export function initApp(): void {
     if (replay) {
       elTutorBar.hidden = true;
       elConfirmBar.hidden = true;
+      elBtnRelayout.hidden = true;
       renderReplayView();
       return;
     }
@@ -348,6 +397,7 @@ export function initApp(): void {
     if (!match) {
       elTutorBar.hidden = true;
       elConfirmBar.hidden = true;
+      elBtnRelayout.hidden = true;
       renderStartScreen();
       return;
     }
@@ -357,20 +407,27 @@ export function initApp(): void {
     deriveSelection(round, legal);
     ensurePileSprites();
     renderTopbar(round);
-    renderHand(0, round, legal);
-    renderHand(1, round, legal);
-    renderBoneyard(round, legal);
+    // В ход бота руки и куча не приглашают к действию: без классов
+    // playable/can-draw — кликать всё равно нельзя.
+    const legalUi = botsTurn() ? [] : legal;
+    renderHand(0, round, legalUi);
+    renderHand(1, round, legalUi);
+    renderBoneyard(round, legalUi);
     renderBoard(round, legal);
     renderTutorBar(round, legal);
     renderConfirmBar(round, legal);
     renderOverlay(round);
     scheduleAutoPass(round, legal);
+    scheduleBotMove();
     animateSeq = null;
   }
 
   function deriveSelection(round: GameState, legal: readonly Move[]): void {
-    if (round.phase === 'over') {
+    if (round.phase === 'over' || botsTurn()) {
+      // В ход бота человеку нечего выбирать: без выделения, без призраков.
       selected = null;
+      if (round.phase === 'over') return;
+      if (pending) pending = null;
       return;
     }
     if (round.mustPlay) {
@@ -399,6 +456,8 @@ export function initApp(): void {
     elStatusEvent.textContent = event;
     elStatusPrompt.innerHTML = prompt;
     elBtnFit.classList.toggle('active', board.isAutoFit());
+    // Кнопка перекладки веток осмысленна, только когда есть повороты.
+    elBtnRelayout.hidden = !round.placed.some((p) => p.kind === 'turn');
   }
 
   // Формулировки без глаголов прошедшего времени: имена игроков любого рода.
@@ -431,6 +490,9 @@ export function initApp(): void {
       return { event, prompt: L().statusRoundOver };
     }
     const name = `<b>${esc(nameOf(round.current))}</b>`;
+    if (botsTurn()) {
+      return { event, prompt: L().statusBotThinking(name) };
+    }
     if (round.phase === 'root') {
       if (round.mustPlay) {
         return { event, prompt: L().promptRootDrawn(name, tileLabel(round.mustPlay)) };
@@ -566,6 +628,16 @@ export function initApp(): void {
   function renderBoneyard(round: GameState, legal: readonly Move[]): void {
     const canDraw = legal.some((m) => m.type === 'draw');
     elBoneyard.classList.toggle('can-draw', canDraw);
+    // Добор бота идёт мимо onPileClick — синхронизируем спрайты с базаром:
+    // гасим первые живые, пока их не станет ровно столько, сколько костей.
+    const need = 14 - round.boneyard.length;
+    let deadNow = pileSprites.filter((s) => !s.alive).length;
+    for (let i = 0; i < pileSprites.length && deadNow < need; i++) {
+      if (pileSprites[i]!.alive) {
+        pileSprites[i]!.alive = false;
+        deadNow++;
+      }
+    }
     const alive = pileSprites.filter((s) => s.alive).length;
     // Куча уже отрисована и совпадает по составу — не трогаем DOM зря.
     const key = `${pileRoundKey}|${alive}|${round.boneyard.length}`;
@@ -617,6 +689,7 @@ export function initApp(): void {
   /** Подсказка режима обучения: что сейчас можно сделать и как. */
   function tutorText(round: GameState, legal: readonly Move[]): string {
     if (round.phase === 'over') return L().tutorOver;
+    if (botsTurn()) return L().tutorBotTurn;
     if (pending) return L().tutorPending;
     if (round.phase === 'root') {
       if (round.mustPlay) return L().tutorRootMustPlay;
@@ -938,7 +1011,29 @@ export function initApp(): void {
         <div class="field"><label for="inp-n0">${L().fieldBottom}</label>
           <input id="inp-n0" type="text" value="${getLocale() === 'ru' ? 'Алексей' : L().defaultP1}" maxlength="16"></div>
         <div class="field"><label for="inp-n1">${L().fieldTop}</label>
-          <input id="inp-n1" type="text" value="${getLocale() === 'ru' ? 'Олечка' : L().defaultP2}" maxlength="16"></div>
+          <input id="inp-n1" type="text" value="${
+            opponentPref !== 'human'
+              ? L().botName
+              : getLocale() === 'ru'
+                ? 'Олечка'
+                : L().defaultP2
+          }" maxlength="16"></div>
+        <div class="field"><label for="inp-opp">${L().fieldOpponent}</label>
+          <select id="inp-opp" class="lang-select">
+            ${(
+              [
+                ['human', L().oppHuman],
+                ['easy', L().oppBotEasy],
+                ['normal', L().oppBotNormal],
+                ['strong', L().oppBotStrong],
+              ] as const
+            )
+              .map(
+                ([v, label]) =>
+                  `<option value="${v}" ${v === opponentPref ? 'selected' : ''}>${label}</option>`,
+              )
+              .join('')}
+          </select></div>
         <div class="field"><label for="inp-lang">${L().fieldLang}</label>
           <select id="inp-lang" class="lang-select">${langOptions}</select></div>
         <label class="check"><input id="inp-variant" type="checkbox">
@@ -998,12 +1093,14 @@ export function initApp(): void {
     const n0 = ($('#inp-n0') as HTMLInputElement).value.trim() || L().defaultP1;
     const n1 = ($('#inp-n1') as HTMLInputElement).value.trim() || L().defaultP2;
     const variant = { doubleOnlyCloses: ($('#inp-variant') as HTMLInputElement).checked };
-    match = startMatch({ names: [n0, n1], first: lotFirst, variant });
+    const bot =
+      opponentPref === 'human' ? null : { player: 1 as const, level: opponentPref };
+    match = startMatch({ names: [n0, n1], first: lotFirst, variant, bot });
     selected = null;
     pending = null;
     pileRoundKey = -1;
     showRoundOver = false;
-    board.setAutoFit(autoFitOn, false);
+    enableAutoFit(false);
     persist();
     renderAll();
     playShuffle();
@@ -1091,6 +1188,10 @@ export function initApp(): void {
 
   function onPileClick(spriteIdx: number, spriteEl: HTMLElement): void {
     if (!match || match.round.phase === 'over') return;
+    if (botsTurn()) {
+      toast(L().toastNoDrawNow, true);
+      return;
+    }
     if (performance.now() - lastDispatchAt < 300) return;
     const round = match.round;
     const legal = legalMoves(round);
@@ -1154,7 +1255,7 @@ export function initApp(): void {
       const tile = handTile.dataset.tile as TileId;
       const player = Number(handTile.dataset.player) as 0 | 1;
       const round = match.round;
-      if (player !== round.current) return;
+      if (player !== round.current || botsTurn()) return;
       if (round.mustPlay && tile !== round.mustPlay) {
         toast(
           round.phase === 'root'
@@ -1176,6 +1277,9 @@ export function initApp(): void {
       }
       selected = selected === tile && !round.mustPlay ? null : tile;
       renderAll();
+      // Выбор дубля под корень возвращает стол к стартовой позиции: тень
+      // корня всегда в кадре, даже если стол смещали в прошлой партии.
+      if (round.phase === 'root' && selected) enableAutoFit();
       return;
     }
 
@@ -1203,7 +1307,7 @@ export function initApp(): void {
         pending = null;
         pileRoundKey = -1;
         showRoundOver = false;
-        board.setAutoFit(autoFitOn, false);
+        enableAutoFit(false);
         persist();
         renderAll();
         playShuffle();
@@ -1258,6 +1362,22 @@ export function initApp(): void {
     } else if (t.id === 'inp-protocol' && t.files?.[0]) {
       void importProtocol(t.files[0]);
       t.value = '';
+    } else if (t.id === 'inp-opp') {
+      opponentPref = t.value as OpponentPref;
+      persistUi();
+      // Имя верхнего игрока меняем только если оно осталось автоподставленным.
+      const n1 = document.querySelector<HTMLInputElement>('#inp-n1');
+      if (n1) {
+        const autoNames = [L().botName, L().defaultP2, 'Олечка'];
+        if (autoNames.includes(n1.value.trim()) || n1.value.trim() === '') {
+          n1.value =
+            opponentPref !== 'human'
+              ? L().botName
+              : getLocale() === 'ru'
+                ? 'Олечка'
+                : L().defaultP2;
+        }
+      }
     } else if (t.id === 'inp-tutor') {
       tutorOn = t.checked;
       elBtnTutor.classList.toggle('active', tutorOn);
@@ -1301,6 +1421,25 @@ export function initApp(): void {
     if (markOwners) {
       toast('Разметка ходов: кости первого игрока светлее, второго — темнее');
     }
+  });
+
+  /** Включить автомасштаб программно (новая партия, выбор корня). */
+  function enableAutoFit(animate = true): void {
+    autoFitOn = true;
+    persistUi();
+    board.setAutoFit(true, animate);
+    elBtnFit.classList.add('active');
+  }
+
+  // Ручная перекладка веток: другая валидная раскладка того же дерева (§6.3).
+  let relayoutSalt = 0;
+  elBtnRelayout.addEventListener('click', () => {
+    if (!match || replay || match.round.phase === 'over') return;
+    const next = shuffleLayout(match.round, ++relayoutSalt);
+    if (!next) return;
+    match = { ...match, round: next };
+    persist();
+    renderAll();
   });
 
   // Галочка «автомасштаб»: включена — держим всё дерево в кадре.
@@ -1370,6 +1509,7 @@ export function initApp(): void {
     elBtnNew.dataset.tip = L().tipNew;
     elBtnTutor.dataset.tip = L().tipTutor;
     elBtnConfirm.dataset.tip = L().tipConfirm;
+    elBtnRelayout.dataset.tip = L().tipRelayout;
     const langSel = document.querySelector<HTMLSelectElement>('#lang-select');
     if (langSel) {
       // В шапке — компактные коды (ru, en, …); полные названия — на старте.

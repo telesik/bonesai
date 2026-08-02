@@ -121,6 +121,11 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     }
     for (const e of game.ends) grow(e.attach);
     for (const c of lastGhostCells) grow(c);
+    // Сырые границы фигуры — для проверки пересечения с кучей базара.
+    const rawMinX = minX;
+    const rawMaxX = maxX;
+    const rawMinY = minY;
+    const rawMaxY = maxY;
     const rect = svg.getBoundingClientRect();
     const aspect = rect.width > 0 && rect.height > 0 ? rect.width / rect.height : 16 / 9;
     let w = (maxX - minX) * CELL;
@@ -143,7 +148,37 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
       w *= scale;
       h *= scale;
     }
-    return { x: minX * CELL, y: minY * CELL, w, h };
+    return avoidPile(
+      { x: minX * CELL, y: minY * CELL, w, h },
+      { x0: rawMinX * CELL, y0: rawMinY * CELL, x1: rawMaxX * CELL, y1: rawMaxY * CELL },
+    );
+  }
+
+  /**
+   * Куча базара лежит поверх стола в правом нижнем углу. Автомасштаб не
+   * должен прятать дерево под ней: пока фигура пересекает кучу на экране,
+   * кадр расширяется вправо-вниз — дерево уезжает к левому верхнему углу.
+   */
+  function avoidPile(vb: ViewBox, raw: { x0: number; y0: number; x1: number; y1: number }): ViewBox {
+    const pile = document.querySelector('#boneyard');
+    if (!pile) return vb;
+    const pr = pile.getBoundingClientRect();
+    const sr = svg.getBoundingClientRect();
+    if (pr.width === 0 || sr.width === 0) return vb;
+    const px0 = pr.left - sr.left;
+    const py0 = pr.top - sr.top;
+    let out = vb;
+    for (let i = 0; i < 10; i++) {
+      const sx1 = ((raw.x1 - out.x) / out.w) * sr.width;
+      const sy1 = ((raw.y1 - out.y) / out.h) * sr.height;
+      const sx0 = ((raw.x0 - out.x) / out.w) * sr.width;
+      const sy0 = ((raw.y0 - out.y) / out.h) * sr.height;
+      const hit =
+        sx1 > px0 && sx0 < pr.right - sr.left && sy1 > py0 && sy0 < pr.bottom - sr.top;
+      if (!hit) break;
+      out = { x: out.x, y: out.y, w: out.w * 1.09, h: out.h * 1.09 };
+    }
+    return out;
   }
 
   function fit(animate = true): void {
@@ -283,6 +318,22 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
           <title>${t.hi}:${t.lo}${p.kind === 'root' ? L().tileRootSuffix : ''}${
             p.kind === 'cross' ? L().tileClosedSuffix : ''
           }${owner}</title>${face}</g>`,
+      );
+    }
+
+    // Тупик корня (§6.2): с этой стороны кости не ставятся никогда.
+    const root = game.placed[0];
+    if (root && root.kind === 'root') {
+      const dx = root.cells[0]!.x - root.cells[1]!.x;
+      const dy = root.cells[0]!.y - root.cells[1]!.y;
+      const tx = (root.cells[0]!.x + dx * 0.5) * CELL + dx * 14;
+      const ty = (root.cells[0]!.y + dy * 0.5) * CELL + dy * 14;
+      parts.push(
+        `<g class="end-marker dead root-dead" transform="translate(${tx.toFixed(1)} ${ty.toFixed(1)})">
+          <title>${L().rootDeadTitle}</title>
+          <circle r="10" class="end-ring"/>
+          <path d="M -4 -4 L 4 4 M 4 -4 L -4 4" class="end-x"/>
+        </g>`,
       );
     }
 
