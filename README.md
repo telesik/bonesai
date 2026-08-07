@@ -7,6 +7,8 @@ A board game played with an ordinary domino set — under completely different r
 
 **Play in the browser / играть в браузере: <https://telesik.github.io/bonesai/>**
 
+BoardGameGeek: [Bonesai (2026)](https://boardgamegeek.com/boardgame/476432/bonesai)
+
 ## Read in your language · Выберите язык
 
 | | README | Rules · Правила | Licence · Лицензия |

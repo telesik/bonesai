@@ -4,6 +4,8 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21745035.svg)](https://doi.org/10.5281/zenodo.21745035)
 
+Das Spiel ist in der BoardGameGeek-Datenbank eingetragen: [Bonesai (2026)](https://boardgamegeek.com/boardgame/476432/bonesai).
+
 Ein Brettspiel mit einem **gewöhnlichen Dominosatz** (28 Steine, Doppelsechs) — aber mit völlig
 anderen Regeln. Kein klassisches Domino: Die Kette über gleiche Hälften, das traditionelle
 Sperrspiel und die Abrechnung nach den Reststeinen gelten hier nicht.

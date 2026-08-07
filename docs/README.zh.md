@@ -4,6 +4,8 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21745035.svg)](https://doi.org/10.5281/zenodo.21745035)
 
+游戏已收录于 BoardGameGeek：[Bonesai (2026)](https://boardgamegeek.com/boardgame/476432/bonesai)。
+
 一款使用**普通多米诺骨牌**（28 张，双六制）的桌面游戏——但规则完全不同。它不是传统的
 多米诺：按相同半边接成一条链、经典的封锁玩法、按剩牌计分——这些在这里都不适用。
 

@@ -4,6 +4,8 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21745035.svg)](https://doi.org/10.5281/zenodo.21745035)
 
+El juego está en la base de datos de BoardGameGeek: [Bonesai (2026)](https://boardgamegeek.com/boardgame/476432/bonesai).
+
 Un juego de mesa con un **dominó estándar corriente** (28 fichas, doble seis) — pero con reglas
 completamente distintas. No es el dominó clásico: la cadena por mitades coincidentes, el clásico
 juego de bloqueo y el recuento por los restos aquí no funcionan.

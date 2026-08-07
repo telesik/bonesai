@@ -4,6 +4,8 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21745035.svg)](https://doi.org/10.5281/zenodo.21745035)
 
+O jogo está registrado no BoardGameGeek: [Bonesai (2026)](https://boardgamegeek.com/boardgame/476432/bonesai).
+
 Um jogo de tabuleiro com um **dominó padrão comum** (28 peças, dupla seis) — mas com regras
 completamente diferentes. Não é o dominó clássico: a corrente de metades iguais, o tradicional
 jogo de bloqueio e a contagem pelos restos não funcionam aqui.
