@@ -185,12 +185,21 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   badge.id = 'version-badge';
   document.body.appendChild(badge);
 
+  // Строка версии — одна на бейдж в углу и на стартовую карточку: игрок видит,
+  // что за сборка, не начав партию, и может назвать её в отчёте о баге.
+  // Версия целиком, включая суффикс фичи: во время разработки надо видеть,
+  // какая ветка собрана (1.0.0-platform), а в релизе суффикса просто нет.
+  // На карточке ссылка на правила уже есть выше, поэтому там версия правил
+  // без ссылки: два одинаковых перехода в одной карточке ни к чему.
+  function versionLine(link: boolean): string {
+    const rules = link
+      ? `<a href="${rulesDocUrl()}" target="_blank" rel="noopener">${L().rulesWord(RULES_VERSION)}</a>`
+      : L().rulesWord(RULES_VERSION);
+    return `${L().versionWord} ${__APP_VERSION__} (${rules}, hashCommit=${__GIT_HASH__})`;
+  }
+
   function updateBadge(): void {
-    // Версия целиком, включая суффикс фичи: во время разработки надо видеть,
-    // какая ветка собрана (1.0.0-platform), а в релизе суффикса просто нет.
-    badge.innerHTML =
-      `${L().versionWord} ${__APP_VERSION__} (<a href="${rulesDocUrl()}" target="_blank" rel="noopener">` +
-      `${L().rulesWord(RULES_VERSION)}</a>, hashCommit=${__GIT_HASH__})`;
+    badge.innerHTML = versionLine(true);
   }
 
   // --- DOM ------------------------------------------------------------------
@@ -1337,6 +1346,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
           <button class="btn ghost-btn" data-action="load-protocol">${L().btnLoadProto}</button>
           <input id="inp-protocol" type="file" accept=".json,application/json" hidden>
         </div>
+        <p class="sub version-line">${versionLine(false)}</p>
       </div>`;
     elOverlay.hidden = false;
   }

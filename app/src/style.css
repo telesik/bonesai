@@ -743,6 +743,17 @@ body {
   border-bottom: 1px dotted var(--gold-soft);
 }
 
+/* Версия внизу карточки: бейдж в углу экрана стартовая карточка накрывает
+   собой, а знать сборку игроку надо до начала партии. Размер и приглушённость
+   как у бейджа — это подпись, а не часть настроек партии. */
+.card .version-line {
+  margin: 16px 0 0;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  opacity: 0.6;
+  text-align: center;
+}
+
 .field {
   display: flex;
   align-items: center;
