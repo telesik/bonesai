@@ -33,6 +33,8 @@ const ru = {
   fieldBottom: 'Нижний игрок',
   fieldTop: 'Верхний игрок',
   fieldLang: 'Язык',
+  settingsTitle: 'Настройки',
+  btnDone: 'Готово',
   defaultP1: 'Игрок 1',
   defaultP2: 'Игрок 2',
   variantText:
@@ -215,6 +217,8 @@ const en: Dict = {
   fieldBottom: 'Bottom player',
   fieldTop: 'Top player',
   fieldLang: 'Language',
+  settingsTitle: 'Settings',
+  btnDone: 'Done',
   defaultP1: 'Player 1',
   defaultP2: 'Player 2',
   variantText:
@@ -380,6 +384,8 @@ const es: Dict = {
   fieldBottom: 'Jugador inferior',
   fieldTop: 'Jugador superior',
   fieldLang: 'Idioma',
+  settingsTitle: 'Ajustes',
+  btnDone: 'Listo',
   defaultP1: 'Jugador 1',
   defaultP2: 'Jugador 2',
   variantText:
@@ -545,6 +551,8 @@ const de: Dict = {
   fieldBottom: 'Unterer Spieler',
   fieldTop: 'Oberer Spieler',
   fieldLang: 'Sprache',
+  settingsTitle: 'Einstellungen',
+  btnDone: 'Fertig',
   defaultP1: 'Spieler 1',
   defaultP2: 'Spieler 2',
   variantText:
@@ -710,6 +718,8 @@ const pt: Dict = {
   fieldBottom: 'Jogador de baixo',
   fieldTop: 'Jogador de cima',
   fieldLang: 'Idioma',
+  settingsTitle: 'Configurações',
+  btnDone: 'Pronto',
   defaultP1: 'Jogador 1',
   defaultP2: 'Jogador 2',
   variantText:
@@ -874,6 +884,8 @@ const zh: Dict = {
   fieldBottom: '下方玩家',
   fieldTop: '上方玩家',
   fieldLang: '语言',
+  settingsTitle: '设置',
+  btnDone: '完成',
   defaultP1: '玩家 1',
   defaultP2: '玩家 2',
   variantText: '变体 §11.1「对子只能封枝」：对子不能直放——更严苛，带陷阱。',
@@ -1044,6 +1056,8 @@ const uk: Dict = {
   fieldBottom: 'Нижній гравець',
   fieldTop: 'Верхній гравець',
   fieldLang: 'Мова',
+  settingsTitle: 'Налаштування',
+  btnDone: 'Готово',
   defaultP1: 'Гравець 1',
   defaultP2: 'Гравець 2',
   variantText:

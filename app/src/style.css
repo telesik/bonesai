@@ -632,8 +632,26 @@ body {
 /* ----------------------------------------------------------------- оверлей */
 
 #overlay[hidden],
+#settings[hidden],
 #toast[hidden] {
   display: none;
+}
+
+/* Экран настроек — поверх всего: и стартовой карточки, и итогов партии. */
+#settings {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 10, 0.72);
+  backdrop-filter: blur(5px);
+  display: flex;
+  z-index: 70;
+  animation: fade-in 0.3s ease;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+#settings .card {
+  margin: auto;
 }
 
 #overlay {

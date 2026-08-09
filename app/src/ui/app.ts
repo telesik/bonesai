@@ -214,8 +214,6 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   const elBtnRelayout = $('#btn-relayout');
   const elBtnFit = $('#btn-fit');
   const elBtnNew = $('#btn-new');
-  const elBtnTutor = $('#btn-tutor');
-  const elBtnConfirm = $('#btn-confirm');
   const svgBoard = document.querySelector<SVGSVGElement>('#board')!;
 
   // --- Состояние ---------------------------------------------------------------
@@ -1273,10 +1271,6 @@ export function initApp(opts: AppOptions = {}): AppHandle {
             `${esc(saved.names[0])} ${saved.totals[0]}:${saved.totals[1]} ${esc(saved.names[1])}`,
           )}</button>`
         : '';
-    const langOptions = LOCALES.map(
-      ({ code, label }) =>
-        `<option value="${code}" ${code === getLocale() ? 'selected' : ''}>${label}</option>`,
-    ).join('');
     elOverlay.innerHTML = `
       <div class="card">
         <h1><span class="gold">B</span>onesai</h1>
@@ -1311,22 +1305,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
               )
               .join('')}
           </select></div>
-        <div class="field"><label for="inp-lang">${L().fieldLang}</label>
-          <select id="inp-lang" class="lang-select">${langOptions}</select></div>
         <label class="check"><input id="inp-variant" type="checkbox">
           ${L().variantText}
         </label>
-        <label class="check"><input id="inp-tutor" type="checkbox" ${tutorOn ? 'checked' : ''}>
-          ${L().tipTutor}
-        </label>
-        ${extraToggles
-          .map(
-            (t) =>
-              `<label class="check"><input data-toggle="${esc(t.id)}" type="checkbox" ${
-                toggleState.get(t.id) ? 'checked' : ''
-              }>${esc(t.label())}</label>`,
-          )
-          .join('')}
         ${tutorOn ? `<p class="sub tutor-hint">${L().tutorStart}</p>` : ''}
         <hr class="sep">
         ${
@@ -1343,6 +1324,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
           ${savedInfo}
         </div>
         <div class="btn-row">
+          <!-- Стартовая карточка перекрывает шапку целиком, поэтому ⚙ отсюда
+               не достать: вход в настройки нужен и здесь. -->
+          <button class="btn ghost-btn" data-action="settings-open">${L().settingsTitle}</button>
           <button class="btn ghost-btn" data-action="load-protocol">${L().btnLoadProto}</button>
           <input id="inp-protocol" type="file" accept=".json,application/json" hidden>
         </div>
@@ -1647,13 +1631,12 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         store.remove(LS_KEY);
         opts.onMatchReset?.();
         renderAll();
+      } else if (action === 'settings-open') {
+        openSettings(true);
       } else if (action === 'tutor-off' || action === 'tutor-keep') {
         // Спрашиваем один раз: пометка ставится при любом ответе.
         tutorAsked = true;
-        if (action === 'tutor-off') {
-          tutorOn = false;
-          elBtnTutor.classList.remove('active');
-        }
+        if (action === 'tutor-off') tutorOn = false;
         persistUi();
         renderAll();
       } else if (action === 'history') {
@@ -1725,39 +1708,6 @@ export function initApp(opts: AppOptions = {}): AppHandle {
           n1.value = opponentPref !== 'human' ? L().botName : L().defaultP2;
         }
       }
-    } else if (t.dataset.toggle) {
-      const toggle = extraToggles.find((x) => x.id === t.dataset.toggle);
-      if (toggle) {
-        toggleState.set(toggle.id, t.checked);
-        persistUi();
-        toggle.onChange(t.checked);
-      }
-    } else if (t.id === 'inp-tutor') {
-      tutorOn = t.checked;
-      elBtnTutor.classList.toggle('active', tutorOn);
-      persistUi();
-      // Подсказку показываем/прячем на месте, не пересобирая экран —
-      // иначе потерялись бы введённые имена и результат жребия.
-      const existing = elOverlay.querySelector('.tutor-hint');
-      if (tutorOn && !existing) {
-        const p = document.createElement('p');
-        p.className = 'sub tutor-hint';
-        p.textContent = L().tutorStart;
-        t.closest('label')!.after(p);
-      } else if (!tutorOn && existing) {
-        existing.remove();
-      }
-    } else if (t.id === 'inp-lang' || t.id === 'lang-select') {
-      setLocale(t.value as Locale);
-      persistUi();
-      applyStaticTexts();
-      // Обе выпадашки языка держим согласованными.
-      document
-        .querySelectorAll<HTMLSelectElement>('#inp-lang, #lang-select')
-        .forEach((s) => {
-          s.value = getLocale();
-        });
-      renderAll();
     }
   });
 
@@ -1805,42 +1755,91 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     persistUi();
   });
 
-  // Выключенный звук — та же нота, но под перечёркнутым кругом (класс muted).
-  const elBtnSound = $('#btn-sound');
-  elBtnSound.addEventListener('click', () => {
-    soundOn = !soundOn;
-    setSoundEnabled(soundOn);
-    elBtnSound.classList.toggle('active', soundOn);
-    elBtnSound.classList.toggle('muted', !soundOn);
-    persistUi();
-    if (soundOn) playPlace('straight');
-  });
+  // --- Экран настроек ---------------------------------------------------------
+  // Настройки, которые ставят один раз, собраны в одном месте с подписями:
+  // безымянные значки в шапке не объяснить, а на телефоне и подсказку по
+  // наведению не показать.
 
-  // Режим обучения: панель-подсказка над столом.
-  elBtnTutor.addEventListener('click', () => {
-    tutorOn = !tutorOn;
-    elBtnTutor.classList.toggle('active', tutorOn);
+  const elSettings = document.createElement('div');
+  elSettings.id = 'settings';
+  elSettings.hidden = true;
+  document.body.appendChild(elSettings);
+
+  function renderSettings(): void {
+    const row = (id: string, on: boolean, text: string): string =>
+      `<label class="check"><input data-set="${id}" type="checkbox" ${
+        on ? 'checked' : ''
+      }>${text}</label>`;
+    elSettings.innerHTML = `
+      <div class="card" style="max-width:460px;width:100%">
+        <h1 style="font-size:22px">${L().settingsTitle}</h1>
+        <div class="field"><label for="set-lang">${L().fieldLang}</label>
+          <select id="set-lang" class="lang-select">${LOCALES.map(
+            ({ code, label }) =>
+              `<option value="${code}" ${code === getLocale() ? 'selected' : ''}>${label}</option>`,
+          ).join('')}</select></div>
+        <hr class="sep">
+        ${row('sound', soundOn, L().tipSound)}
+        ${row('tutor', tutorOn, L().tipTutor)}
+        ${row('confirm', confirmOn, L().tipConfirm)}
+        ${row('hands', handsVertical, L().tipOrient)}
+        ${extraToggles
+          .map((t) => row(`x:${t.id}`, toggleState.get(t.id) === true, esc(t.label())))
+          .join('')}
+        <div class="btn-row"><button class="btn" data-action="settings-close">${
+          L().btnDone
+        }</button></div>
+      </div>`;
+  }
+
+  function openSettings(on: boolean): void {
+    if (on) renderSettings();
+    elSettings.hidden = !on;
+  }
+
+  elSettings.addEventListener('change', (ev) => {
+    const el = ev.target as HTMLInputElement | HTMLSelectElement;
+    if (el.id === 'set-lang') {
+      setLocale((el as HTMLSelectElement).value as Locale);
+      persistUi();
+      applyStaticTexts();
+      renderSettings();
+      renderAll();
+      return;
+    }
+    const id = (el as HTMLInputElement).dataset.set;
+    if (!id) return;
+    const on = (el as HTMLInputElement).checked;
+    if (id.startsWith('x:')) {
+      const toggle = extraToggles.find((t) => t.id === id.slice(2));
+      if (!toggle) return;
+      toggleState.set(toggle.id, on);
+      persistUi();
+      toggle.onChange(on);
+      return;
+    }
+    if (id === 'sound') {
+      soundOn = on;
+      setSoundEnabled(on);
+      if (on) playPlace('straight');
+    } else if (id === 'tutor') {
+      tutorOn = on;
+    } else if (id === 'confirm') {
+      confirmOn = on;
+      if (!on) pending = null;
+    } else if (id === 'hands') {
+      handsVertical = on;
+    }
     persistUi();
     renderAll();
   });
 
-  // Подтверждение хода: клик по тени выбирает, ставится после подтверждения.
-  elBtnConfirm.addEventListener('click', () => {
-    confirmOn = !confirmOn;
-    if (!confirmOn) pending = null;
-    elBtnConfirm.classList.toggle('active', confirmOn);
-    persistUi();
-    renderAll();
+  elSettings.addEventListener('click', (ev) => {
+    const el = (ev.target as HTMLElement).closest<HTMLElement>('[data-action]');
+    if (el?.dataset.action === 'settings-close') openSettings(false);
   });
 
-  // Ориентация костей в руке: вертикально (по умолчанию) или горизонтально.
-  const elBtnOrient = $('#btn-orient');
-  elBtnOrient.addEventListener('click', () => {
-    handsVertical = !handsVertical;
-    elBtnOrient.textContent = handsVertical ? '▯' : '▭';
-    persistUi();
-    renderAll();
-  });
+  $('#btn-settings').addEventListener('click', () => openSettings(elSettings.hidden));
 
   elBtnNew.addEventListener('click', () => {
     if (match && !match.outcome) {
@@ -1861,21 +1860,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     elBtnHist.dataset.tip = L().tipHistory;
     elBtnMark.dataset.tip = L().tipMark;
     elBtnFit.dataset.tip = L().tipFit;
-    elBtnOrient.dataset.tip = L().tipOrient;
-    elBtnSound.dataset.tip = L().tipSound;
     elBtnNew.dataset.tip = L().tipNew;
-    elBtnTutor.dataset.tip = L().tipTutor;
-    elBtnConfirm.dataset.tip = L().tipConfirm;
     elBtnRelayout.dataset.tip = L().tipRelayout;
-    const langSel = document.querySelector<HTMLSelectElement>('#lang-select');
-    if (langSel) {
-      // В шапке — компактные коды (ru, en, …); полные названия — на старте.
-      langSel.dataset.tip = L().tipLang;
-      langSel.innerHTML = LOCALES.map(
-        ({ code }) =>
-          `<option value="${code}" ${code === getLocale() ? 'selected' : ''}>${code}</option>`,
-      ).join('');
-    }
+    $('#btn-settings').dataset.tip = L().settingsTitle;
     updateBadge();
   }
 
@@ -1883,11 +1870,6 @@ export function initApp(opts: AppOptions = {}): AppHandle {
 
   applyStaticTexts();
   elBtnFit.classList.toggle('active', autoFitOn);
-  elBtnSound.classList.toggle('active', soundOn);
-  elBtnSound.classList.toggle('muted', !soundOn);
-  elBtnTutor.classList.toggle('active', tutorOn);
-  elBtnConfirm.classList.toggle('active', confirmOn);
-  elBtnOrient.textContent = handsVertical ? '▯' : '▭';
   board.setAutoFit(autoFitOn, false);
 
   try {
