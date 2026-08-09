@@ -161,6 +161,9 @@ const ru = {
   // Подтверждение хода и режим обучения
   tipConfirm: 'Подтверждение хода: клик по тени только выбирает ход, кость ставится после подтверждения',
   tipTutor: 'Режим обучения: подсказки, какие ходы возможны и как их сделать',
+  tutorEnough: 'Вы сыграли несколько партий — возможно, подсказки больше не нужны.',
+  btnTutorOff: 'Выключить подсказки',
+  btnTutorKeep: 'Оставить',
   confirmAsk: (tile: string, mode: string) => `Поставить ${tile} ${mode}?`,
   confirmRootAsk: (tile: string) => `Выставить корень ${tile}?`,
   confirmYes: 'Поставить',
@@ -326,6 +329,9 @@ const en: Dict = {
 
   tipConfirm: 'Move confirmation: a ghost click only selects the move; the tile is placed after you confirm',
   tipTutor: 'Learning mode: hints on what moves are available and how to make them',
+  tutorEnough: 'You have played a few rounds — perhaps you no longer need the hints.',
+  btnTutorOff: 'Turn hints off',
+  btnTutorKeep: 'Keep them',
   confirmAsk: (tile, mode) => `Play ${tile} ${mode}?`,
   confirmRootAsk: (tile) => `Place the root ${tile}?`,
   confirmYes: 'Place',
@@ -488,6 +494,9 @@ const es: Dict = {
 
   tipConfirm: 'Confirmación de jugada: el clic en la sombra solo elige la jugada; la ficha se coloca tras confirmar',
   tipTutor: 'Modo aprendizaje: pistas sobre qué jugadas hay y cómo hacerlas',
+  tutorEnough: 'Ya has jugado varias partidas: quizá las pistas ya no hagan falta.',
+  btnTutorOff: 'Desactivar pistas',
+  btnTutorKeep: 'Mantenerlas',
   confirmAsk: (tile, mode) => `¿Colocar ${tile} ${mode}?`,
   confirmRootAsk: (tile) => `¿Colocar la raíz ${tile}?`,
   confirmYes: 'Colocar',
@@ -650,6 +659,9 @@ const de: Dict = {
 
   tipConfirm: 'Zugbestätigung: der Klick auf den Schatten wählt den Zug nur aus; gelegt wird nach Bestätigung',
   tipTutor: 'Lernmodus: Hinweise, welche Züge möglich sind und wie man sie macht',
+  tutorEnough: 'Sie haben einige Partien gespielt — vielleicht brauchen Sie die Hinweise nicht mehr.',
+  btnTutorOff: 'Hinweise ausschalten',
+  btnTutorKeep: 'Behalten',
   confirmAsk: (tile, mode) => `${tile} legen: ${mode}?`,
   confirmRootAsk: (tile) => `Wurzel ${tile} legen?`,
   confirmYes: 'Legen',
@@ -812,6 +824,9 @@ const pt: Dict = {
 
   tipConfirm: 'Confirmação de jogada: o clique na sombra só escolhe a jogada; a peça é colocada após confirmar',
   tipTutor: 'Modo aprendizado: dicas sobre quais jogadas existem e como fazê-las',
+  tutorEnough: 'Você já jogou algumas partidas — talvez as dicas não sejam mais necessárias.',
+  btnTutorOff: 'Desligar dicas',
+  btnTutorKeep: 'Manter',
   confirmAsk: (tile, mode) => `Colocar ${tile} ${mode}?`,
   confirmRootAsk: (tile) => `Colocar a raiz ${tile}?`,
   confirmYes: 'Colocar',
@@ -972,6 +987,9 @@ const zh: Dict = {
 
   tipConfirm: '落子确认：点击虚影只是选择走法，确认后才放牌',
   tipTutor: '教学模式：提示有哪些走法以及如何操作',
+  tutorEnough: '你已经玩了几局 — 也许不再需要提示了。',
+  btnTutorOff: '关闭提示',
+  btnTutorKeep: '继续保留',
   confirmAsk: (tile, mode) => `确认放置 ${tile}（${mode}）？`,
   confirmRootAsk: (tile) => `打出根牌 ${tile}？`,
   confirmYes: '放置',
@@ -1140,6 +1158,9 @@ const uk: Dict = {
 
   tipConfirm: 'Підтвердження ходу: клік по тіні лише обирає хід, кістка ставиться після підтвердження',
   tipTutor: 'Режим навчання: підказки, які ходи можливі та як їх зробити',
+  tutorEnough: 'Ви зіграли кілька партій — можливо, підказки вже не потрібні.',
+  btnTutorOff: 'Вимкнути підказки',
+  btnTutorKeep: 'Залишити',
   confirmAsk: (tile, mode) => `Поставити ${tile} ${mode}?`,
   confirmRootAsk: (tile) => `Виставити корінь ${tile}?`,
   confirmYes: 'Поставити',

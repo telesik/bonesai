@@ -89,6 +89,21 @@ export interface OpponentOption {
   nameLabel?: () => string;
 }
 
+/**
+ * Переключатель настройки, которую умеет только платформа (например,
+ * «не гасить экран»). Приложение рисует его на стартовом экране и хранит
+ * состояние вместе с остальными настройками вида; что делать при
+ * переключении — знает надстройка.
+ */
+export interface ExtraToggle {
+  id: string;
+  /** Локализованная подпись: надстройка переводит сама. */
+  label: () => string;
+  /** Значение при первом запуске, пока игрок ничего не выбрал. */
+  initial: boolean;
+  onChange(on: boolean): void;
+}
+
 /** Параметры старта матча, собранные стартовым экраном. */
 export interface StartSetup {
   names: [string, string];
@@ -107,6 +122,8 @@ export interface AppOptions {
   onMove?: (move: Move, round: GameState) => void;
   /** Дополнительные пункты селектора соперника. */
   opponentOptions?: readonly OpponentOption[];
+  /** Дополнительные переключатели настроек от платформы. */
+  extraToggles?: readonly ExtraToggle[];
   /** Старт матча с дополнительным пунктом селектора: стандартный старт не
    *  выполняется, матч запускает надстройка (например, через своё лобби). */
   onOpponentStart?: (id: string, setup: StartSetup) => void;
@@ -152,6 +169,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   // Дополнительные пункты соперника имеют смысл только вместе с обработчиком
   // старта: пункт без onOpponentStart делал бы кнопку старта молча мёртвой.
   const extraOpponents = opts.onOpponentStart ? (opts.opponentOptions ?? []) : [];
+  const extraToggles = opts.extraToggles ?? [];
+  /** Состояния переключателей платформы; ключ — id переключателя. */
+  const toggleState = new Map<string, boolean>();
   // Общие SVG-определения (градиенты, тени) — один раз на документ:
   // на них ссылаются и стол, и кости в руках, и базар.
   const defsHost = document.createElement('div');
@@ -236,6 +256,12 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   let handsVertical = true;
   let confirmOn = false;
   let tutorOn = false;
+  /** Сколько партий доиграно за всё время — по ним предлагаем убрать подсказки. */
+  let roundsDone = 0;
+  /** Предложение выключить обучение делается один раз и больше не возвращается. */
+  let tutorAsked = false;
+  /** Сколько партий нужно доиграть, прежде чем предложить убрать подсказки. */
+  const TUTOR_ENOUGH = 3;
   // Помимо встроенных значений допускает id пунктов из opts.opponentOptions.
   type OpponentPref = 'human' | BotLevel | (string & {});
   let opponentPref: OpponentPref = 'human';
@@ -254,6 +280,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
       opponent?: string;
       p1Name?: string;
       p2Name?: string;
+      toggles?: Record<string, boolean>;
+      roundsDone?: number;
+      tutorAsked?: boolean;
     };
     markOwners = !!prefs.markOwners;
     if (typeof prefs.p1Name === 'string') savedP1 = prefs.p1Name.slice(0, 16);
@@ -263,6 +292,8 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     handsVertical = prefs.handsVertical !== false;
     confirmOn = !!prefs.confirm;
     tutorOn = !!prefs.tutor;
+    roundsDone = Math.max(0, Math.trunc(prefs.roundsDone ?? 0));
+    tutorAsked = !!prefs.tutorAsked;
     const validOpp = [
       'human',
       'easy',
@@ -273,11 +304,20 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     if (validOpp.includes(prefs.opponent ?? '')) {
       opponentPref = prefs.opponent as OpponentPref;
     }
+    for (const t of extraToggles) {
+      toggleState.set(t.id, prefs.toggles?.[t.id] ?? t.initial);
+    }
     setLocale(detectLocale(prefs.locale ?? null));
   } catch {
     setLocale(detectLocale(null));
   }
   setSoundEnabled(soundOn);
+  // Сохранённое состояние переключателей применяем сразу: иначе галочка
+  // показывала бы одно, а платформа делала другое до первого переключения.
+  for (const t of extraToggles) {
+    if (!toggleState.has(t.id)) toggleState.set(t.id, t.initial);
+    t.onChange(toggleState.get(t.id) === true);
+  }
 
   function persistUi(): void {
     try {
@@ -294,6 +334,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
           opponent: opponentPref,
           p1Name: savedP1,
           p2Name: savedP2,
+          toggles: Object.fromEntries(toggleState),
+          roundsDone,
+          tutorAsked,
         }),
       );
     } catch {
@@ -436,6 +479,21 @@ export function initApp(opts: AppOptions = {}): AppHandle {
    *  handle.dispatch, локальный ввод в его ход заблокирован. */
   let remoteSeat: 0 | 1 | null = null;
 
+  /**
+   * Чья рука внизу экрана. В игре на двоих за одним экраном это всегда
+   * первое место: игроки сидят рядом и смотрят на стол одинаково. В игре
+   * с внешним соперником у каждого свой экран, и каждый должен видеть
+   * СВОЮ руку снизу, а чужую сверху — как за настоящим столом напротив.
+   */
+  function bottomSeat(): 0 | 1 {
+    return remoteSeat === null ? 0 : ((1 - remoteSeat) as 0 | 1);
+  }
+
+  /** Контейнер руки игрока с учётом того, кто сидит «снизу». */
+  function handEl(player: 0 | 1): HTMLElement {
+    return player === bottomSeat() ? elHandBottom : elHandTop;
+  }
+
   /** Сейчас очередь бота (именно бота — его ход генерирует scheduleBotMove). */
   function botsTurnNow(): boolean {
     return (
@@ -546,7 +604,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
       const el =
         document.querySelector(
           `.hand-tile[data-player="${cur}"][data-tile="${move.tile}"]`,
-        ) ?? (cur === 0 ? elHandBottom : elHandTop);
+        ) ?? handEl(cur);
       flyFrom = el.getBoundingClientRect();
     }
     let round: GameState;
@@ -568,6 +626,8 @@ export function initApp(opts: AppOptions = {}): AppHandle {
 
     if (round.phase === 'over') {
       match = finishRound(match);
+      roundsDone++;
+      persistUi();
       showRoundOver = false;
       clearTimeout(roundOverTimer);
       roundOverTimer = window.setTimeout(() => {
@@ -732,7 +792,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     legal: readonly Move[],
     view: HandView | null = null,
   ): void {
-    const el = player === 0 ? elHandBottom : elHandTop;
+    const el = handEl(player);
     const hand = round.hands[player];
     // «Активный» игрок: в живой игре — чей ход, в истории — кто сделал
     // показанный ход. Отмечается рамкой руки и рукой-указателем у имени.
@@ -1259,6 +1319,14 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         <label class="check"><input id="inp-tutor" type="checkbox" ${tutorOn ? 'checked' : ''}>
           ${L().tipTutor}
         </label>
+        ${extraToggles
+          .map(
+            (t) =>
+              `<label class="check"><input data-toggle="${esc(t.id)}" type="checkbox" ${
+                toggleState.get(t.id) ? 'checked' : ''
+              }>${esc(t.label())}</label>`,
+          )
+          .join('')}
         ${tutorOn ? `<p class="sub tutor-hint">${L().tutorStart}</p>` : ''}
         <hr class="sep">
         ${
@@ -1406,6 +1474,18 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         </div>${reviewRow}`;
     }
 
+    // Подсказки нужны первые партии, дальше только мешают. Предлагаем убрать
+    // их один раз и больше не возвращаемся к вопросу, каким бы ни был ответ.
+    const tutorOffer =
+      tutorOn && !tutorAsked && roundsDone >= TUTOR_ENOUGH
+        ? `<hr class="sep">
+        <p class="sub">${L().tutorEnough}</p>
+        <div class="btn-row">
+          <button class="btn" data-action="tutor-off">${L().btnTutorOff}</button>
+          <button class="btn ghost-btn" data-action="tutor-keep">${L().btnTutorKeep}</button>
+        </div>`
+        : '';
+
     elOverlay.innerHTML = `
       <div class="card">
         <h2>${causeTitle}</h2>
@@ -1414,7 +1494,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         <div class="match-score">${esc(nameOf(0))} ${match.totals[0]} : ${match.totals[1]} ${esc(
           nameOf(1),
         )}</div>
-        ${footer}
+        ${footer}${tutorOffer}
       </div>`;
     elOverlay.hidden = false;
   }
@@ -1450,7 +1530,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     const entry = match.round.log[match.round.log.length - 1];
     if (!entry || entry.kind !== 'draw') return;
     // Полёт: рубашка → лицо, из кучи в руку игрока.
-    const toEl = drawer === 0 ? elHandBottom : elHandTop;
+    const toEl = handEl(drawer);
     const toRect = toEl.getBoundingClientRect();
     const pt = parseTile(entry.tile);
     const fly = document.createElement('div');
@@ -1567,6 +1647,15 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         store.remove(LS_KEY);
         opts.onMatchReset?.();
         renderAll();
+      } else if (action === 'tutor-off' || action === 'tutor-keep') {
+        // Спрашиваем один раз: пометка ставится при любом ответе.
+        tutorAsked = true;
+        if (action === 'tutor-off') {
+          tutorOn = false;
+          elBtnTutor.classList.remove('active');
+        }
+        persistUi();
+        renderAll();
       } else if (action === 'history') {
         showRoundOver = false;
         openHistory();
@@ -1635,6 +1724,13 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         if (autoNames.includes(n1.value.trim()) || n1.value.trim() === '') {
           n1.value = opponentPref !== 'human' ? L().botName : L().defaultP2;
         }
+      }
+    } else if (t.dataset.toggle) {
+      const toggle = extraToggles.find((x) => x.id === t.dataset.toggle);
+      if (toggle) {
+        toggleState.set(toggle.id, t.checked);
+        persistUi();
+        toggle.onChange(t.checked);
       }
     } else if (t.id === 'inp-tutor') {
       tutorOn = t.checked;
