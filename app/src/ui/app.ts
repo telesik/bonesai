@@ -78,6 +78,15 @@ export interface OpponentOption {
   id: string;
   /** Локализованная подпись пункта: надстройка переводит сама. */
   label: () => string;
+  /** Нужен ли жребий (§2.5). false — первого игрока определяет надстройка
+   *  (например, общий seed сетевой партии); блок жребия скрывается. */
+  needsLots?: boolean;
+  /** Нужно ли имя второго игрока. false — поле скрыто (имя придёт извне). */
+  needsSecondName?: boolean;
+  /** Подпись кнопки старта вместо стандартной («Найти соперника…» и т.п.). */
+  startLabel?: () => string;
+  /** Подпись поля имени вместо «Нижний игрок» («Игровое имя» и т.п.). */
+  nameLabel?: () => string;
 }
 
 /** Параметры старта матча, собранные стартовым экраном. */
@@ -101,6 +110,12 @@ export interface AppOptions {
   /** Старт матча с дополнительным пунктом селектора: стандартный старт не
    *  выполняется, матч запускает надстройка (например, через своё лобби). */
   onOpponentStart?: (id: string, setup: StartSetup) => void;
+  /** Клик «следующая партия». Вернуть true — стандартный переход подавлен,
+   *  надстройка выполнит его сама (handle.nextRoundWith с общим seed). */
+  onNextRoundRequest?: () => boolean;
+  /** Пользователь сбросил матч (новый матч поверх текущего): надстройке
+   *  пора закрыть свои ресурсы (например, сетевую сессию). */
+  onMatchReset?: () => void;
 }
 
 /** Управление приложением снаружи: вход внешних ходов и чтение состояния. */
@@ -113,6 +128,17 @@ export interface AppHandle {
   /** Назначить место, управляемое извне: в его ход локальный ввод
    *  заблокирован, ходы приходят через dispatch. null — снять. */
   setRemoteSeat(seat: 0 | 1 | null): void;
+  /** Начать матч с внешним игроком: фиксированный общий seed, место
+   *  соперника управляется извне. Закрывает стартовый экран. */
+  startRemoteMatch(o: {
+    names: [string, string];
+    first: 0 | 1;
+    variant: Variant;
+    seed: number;
+    remoteSeat: 0 | 1;
+  }): void;
+  /** Следующая партия с заданным seed (для синхронного перехода сторон). */
+  nextRoundWith(seed: number): void;
   render(): void;
 }
 
@@ -213,6 +239,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   // Помимо встроенных значений допускает id пунктов из opts.opponentOptions.
   type OpponentPref = 'human' | BotLevel | (string & {});
   let opponentPref: OpponentPref = 'human';
+  // Имена игроков переживают перезапуск (пустая строка = не задано).
+  let savedP1 = '';
+  let savedP2 = '';
   try {
     const prefs = JSON.parse(store.get(LS_UI_KEY) ?? '{}') as {
       markOwners?: boolean;
@@ -223,8 +252,12 @@ export function initApp(opts: AppOptions = {}): AppHandle {
       confirm?: boolean;
       tutor?: boolean;
       opponent?: string;
+      p1Name?: string;
+      p2Name?: string;
     };
     markOwners = !!prefs.markOwners;
+    if (typeof prefs.p1Name === 'string') savedP1 = prefs.p1Name.slice(0, 16);
+    if (typeof prefs.p2Name === 'string') savedP2 = prefs.p2Name.slice(0, 16);
     autoFitOn = prefs.autoFit !== false;
     soundOn = prefs.sound !== false;
     handsVertical = prefs.handsVertical !== false;
@@ -259,6 +292,8 @@ export function initApp(opts: AppOptions = {}): AppHandle {
           confirm: confirmOn,
           tutor: tutorOn,
           opponent: opponentPref,
+          p1Name: savedP1,
+          p2Name: savedP2,
         }),
       );
     } catch {
@@ -1168,6 +1203,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   }
 
   function renderStartScreen(): void {
+    const curExtra = extraOpponents.find((o) => o.id === opponentPref);
+    const wantLots = curExtra?.needsLots !== false;
+    const wantSecondName = curExtra?.needsSecondName !== false;
     const saved = loadSaved();
     const savedInfo =
       saved && !saved.outcome
@@ -1184,12 +1222,18 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         <h1><span class="gold">B</span>onesai</h1>
         <p class="sub">${L().tagline}</p>
         <p class="sub rules-line"><a href="${rulesDocUrl()}" target="_blank" rel="noopener">${L().linkRules}</a></p>
-        <div class="field"><label for="inp-n0">${L().fieldBottom}</label>
-          <input id="inp-n0" type="text" value="${L().defaultP1}" maxlength="16"></div>
-        <div class="field"><label for="inp-n1">${L().fieldTop}</label>
+        <div class="field"><label for="inp-n0">${
+          esc(curExtra?.nameLabel?.() ?? '') || L().fieldBottom
+        }</label>
+          <input id="inp-n0" type="text" value="${esc(savedP1) || L().defaultP1}" maxlength="16"></div>
+        ${
+          wantSecondName
+            ? `<div class="field"><label for="inp-n1">${L().fieldTop}</label>
           <input id="inp-n1" type="text" value="${
-            opponentPref !== 'human' ? L().botName : L().defaultP2
-          }" maxlength="16"></div>
+            opponentPref !== 'human' ? L().botName : esc(savedP2) || L().defaultP2
+          }" maxlength="16"></div>`
+            : ''
+        }
         <div class="field"><label for="inp-opp">${L().fieldOpponent}</label>
           <select id="inp-opp" class="lang-select">
             ${(
@@ -1217,11 +1261,17 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         </label>
         ${tutorOn ? `<p class="sub tutor-hint">${L().tutorStart}</p>` : ''}
         <hr class="sep">
-        <div class="lot-result" id="lot-result">${L().lotDecides}</div>
-        <div class="lot-row" id="lot-row"></div>
+        ${
+          wantLots
+            ? `<div class="lot-result" id="lot-result">${L().lotDecides}</div>
+        <div class="lot-row" id="lot-row"></div>`
+            : ''
+        }
         <div class="btn-row">
-          <button class="btn" data-action="lot">${L().btnLot}</button>
-          <button class="btn" data-action="start" disabled id="btn-start">${L().btnStart}</button>
+          ${wantLots ? `<button class="btn" data-action="lot">${L().btnLot}</button>` : ''}
+          <button class="btn" data-action="start" ${wantLots ? 'disabled' : ''} id="btn-start">${
+            esc(curExtra?.startLabel?.() ?? '') || L().btnStart
+          }</button>
           ${savedInfo}
         </div>
         <div class="btn-row">
@@ -1262,19 +1312,24 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   }
 
   function startNewMatch(): void {
-    if (lotFirst === null) return;
+    const curExtra = extraOpponents.find((o) => o.id === opponentPref);
+    if (lotFirst === null && curExtra?.needsLots !== false) return;
     const n0 = ($('#inp-n0') as HTMLInputElement).value.trim() || L().defaultP1;
-    const n1 = ($('#inp-n1') as HTMLInputElement).value.trim() || L().defaultP2;
+    const n1 =
+      document.querySelector<HTMLInputElement>('#inp-n1')?.value.trim() || L().defaultP2;
     const variant = { doubleOnlyCloses: ($('#inp-variant') as HTMLInputElement).checked };
     const opp = opponentPref;
     const botLevel =
       opp === 'easy' || opp === 'normal' || opp === 'strong' ? (opp as BotLevel) : null;
     if (opp !== 'human' && botLevel === null) {
       // Дополнительный пункт селектора: матч запускает надстройка.
-      opts.onOpponentStart?.(opp, { names: [n0, n1], first: lotFirst, variant });
+      opts.onOpponentStart?.(opp, { names: [n0, n1], first: lotFirst ?? 0, variant });
       return;
     }
+    if (lotFirst === null) return;
     const bot = botLevel ? { player: 1 as const, level: botLevel } : null;
+    remoteSeat = null;
+    opts.onMatchReset?.();
     match = startMatch({ names: [n0, n1], first: lotFirst, variant, bot });
     selected = null;
     pending = null;
@@ -1491,6 +1546,8 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         }
       } else if (action === 'next-round') {
         if (!match) return;
+        // Надстройка может взять переход на себя (общий seed сетевой партии).
+        if (opts.onNextRoundRequest?.() === true) return;
         match = nextRound(match, seedFromCrypto());
         selected = null;
         pending = null;
@@ -1506,7 +1563,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         lotFirst = null;
         replay = null;
         pending = null;
+        remoteSeat = null;
         store.remove(LS_KEY);
+        opts.onMatchReset?.();
         renderAll();
       } else if (action === 'history') {
         showRoundOver = false;
@@ -1551,9 +1610,24 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     } else if (t.id === 'inp-protocol' && t.files?.[0]) {
       void importProtocol(t.files[0]);
       t.value = '';
+    } else if (t.id === 'inp-n0' || t.id === 'inp-n1') {
+      // Имена запоминаются между запусками; автоимена ботов не сохраняем.
+      const v = t.value.trim().slice(0, 16);
+      if (t.id === 'inp-n0') savedP1 = v;
+      else if (v !== L().botName) savedP2 = v;
+      persistUi();
     } else if (t.id === 'inp-opp') {
       opponentPref = t.value as OpponentPref;
       persistUi();
+      // Форма зависит от пункта (жребий, второе имя) — перестраиваем экран,
+      // сохранив введённое имя нижнего игрока и галочку варианта.
+      const n0 = document.querySelector<HTMLInputElement>('#inp-n0')?.value;
+      const varOn = document.querySelector<HTMLInputElement>('#inp-variant')?.checked;
+      renderStartScreen();
+      const n0el = document.querySelector<HTMLInputElement>('#inp-n0');
+      if (n0el && n0 !== undefined) n0el.value = n0;
+      const varEl = document.querySelector<HTMLInputElement>('#inp-variant');
+      if (varEl && varOn !== undefined) varEl.checked = varOn;
       // Имя верхнего игрока меняем только если оно осталось автоподставленным.
       const n1 = document.querySelector<HTMLInputElement>('#inp-n1');
       if (n1) {
@@ -1680,7 +1754,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     lotFirst = null;
     replay = null;
     pending = null;
+    remoteSeat = null;
     store.remove(LS_KEY);
+    opts.onMatchReset?.();
     renderAll();
   });
 
@@ -1734,11 +1810,50 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   }
 
   return {
-    dispatch,
+    // Внешний ход важнее просмотра истории: иначе ход, пришедший while
+    // открыт режим истории, молча терялся бы (dispatch в replay — no-op).
+    dispatch: (m) => {
+      if (replay) exitReplay();
+      dispatch(m);
+    },
     getMatch: () => match,
     setRemoteSeat(seat) {
       remoteSeat = seat;
       renderAll();
+    },
+    startRemoteMatch(o) {
+      match = startMatch({
+        names: o.names,
+        first: o.first,
+        variant: o.variant,
+        seed: o.seed,
+        bot: null,
+      });
+      remoteSeat = o.remoteSeat;
+      selected = null;
+      pending = null;
+      pileRoundKey = -1;
+      showRoundOver = false;
+      lotFirst = null;
+      elOverlay.hidden = true;
+      enableAutoFit(false);
+      persist();
+      renderAll();
+      playShuffle();
+      toast(L().toastFirstOpen(nameOf(o.first)));
+    },
+    nextRoundWith(seed) {
+      if (!match || match.outcome) return;
+      match = nextRound(match, seed);
+      selected = null;
+      pending = null;
+      pileRoundKey = -1;
+      showRoundOver = false;
+      enableAutoFit(false);
+      persist();
+      renderAll();
+      playShuffle();
+      toast(L().toastRoundStart(match.rounds.length + 1, nameOf(match.first)));
     },
     render: renderAll,
   };
