@@ -6,6 +6,8 @@
 
 O jogo está registrado no BoardGameGeek: [Bonesai (2026)](https://boardgamegeek.com/boardgame/476432/bonesai).
 
+Jogar no navegador: <https://telesik.github.io/bonesai/> — a dois na mesma tela ou contra o bot.
+
 Um jogo de tabuleiro com um **dominó padrão comum** (28 peças, dupla seis) — mas com regras
 completamente diferentes. Não é o dominó clássico: a corrente de metades iguais, o tradicional
 jogo de bloqueio e a contagem pelos restos não funcionam aqui.
@@ -57,9 +59,9 @@ de 2026, e naquela mesma noite disputamos muitos jogos a dois — gostamos do re
 isso as regras foram postas por escrito. Por enquanto é uma única noite e dois jogadores: para
 tirar conclusões sobre o equilíbrio são necessários mais jogos e mais gente.
 
-Próximos passos: uma bancada de testes e um protótipo digital, depois a ampliação do grupo
-de teste. O modo para 3+ jogadores foi adiado de propósito até que o jogo a dois esteja
-implementado.
+O protótipo digital está pronto — é possível jogar no navegador: a dois na mesma tela ou contra
+o bot. A seguir — a ampliação do grupo de teste para além de duas pessoas. O modo para 3+
+jogadores foi adiado de propósito até que o jogo a dois esteja implementado.
 
 O nome é provisório: a disponibilidade foi verificada no BoardGameGeek, no GitHub e no
 TMview. Não há coincidências exatas, mas marcas próximas, como “Bonsai”, na classe de jogos

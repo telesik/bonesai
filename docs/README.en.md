@@ -6,6 +6,8 @@
 
 The game is listed on BoardGameGeek: [Bonesai (2026)](https://boardgamegeek.com/boardgame/476432/bonesai).
 
+Play in the browser: <https://telesik.github.io/bonesai/> — two players at one screen or against the bot.
+
 A board game played with an **ordinary domino set** (28 tiles, double-six) — but under completely
 different rules. This is not conventional dominoes: matching halves into a single chain, the
 traditional blocking game and scoring off the leftovers all work differently here.
@@ -56,8 +58,9 @@ rounds were played that same evening — we enjoyed it, which is why the rules w
 is still one evening and two players: drawing conclusions about the balance will take more rounds
 and more people.
 
-Next: a physical test setup and a digital prototype, then widening the test group. A mode for 3+
-players is deliberately deferred until the two-player game has been implemented.
+The digital prototype is ready — it can be played in the browser: two players at one screen or
+against the bot. Next — widening the test group beyond two people. A mode for 3+ players is
+deliberately deferred until the two-player game has been implemented.
 
 The name is a working title: it has been checked on BoardGameGeek, GitHub and TMview. There are
 no exact matches, but close “Bonsai” marks in the games class pose a risk for trademark

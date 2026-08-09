@@ -6,6 +6,8 @@
 
 Das Spiel ist in der BoardGameGeek-Datenbank eingetragen: [Bonesai (2026)](https://boardgamegeek.com/boardgame/476432/bonesai).
 
+Im Browser spielen: <https://telesik.github.io/bonesai/> — zu zweit an einem Bildschirm oder gegen den Bot.
+
 Ein Brettspiel mit einem **gewöhnlichen Dominosatz** (28 Steine, Doppelsechs) — aber mit völlig
 anderen Regeln. Kein klassisches Domino: Die Kette über gleiche Hälften, das traditionelle
 Sperrspiel und die Abrechnung nach den Reststeinen gelten hier nicht.
@@ -59,7 +61,8 @@ erfunden; noch am selben Abend wurden viele Partien zu zweit gespielt — es hat
 sind die Regeln aufgeschrieben. Das ist bislang ein Abend und zwei Spieler: Für Schlüsse über die
 Balance braucht es mehr Partien und mehr Menschen.
 
-Als Nächstes: ein Teststand und ein digitaler Prototyp, danach die Erweiterung der Testgruppe. Der
+Der digitale Prototyp ist fertig — er lässt sich im Browser spielen: zu zweit an einem Bildschirm
+oder gegen den Bot. Als Nächstes — die Erweiterung der Testgruppe über zwei Personen hinaus. Der
 Modus für 3+ Spieler ist bewusst zurückgestellt, bis das Spiel zu zweit umgesetzt ist.
 
 Der Name ist ein Arbeitstitel: geprüft auf BoardGameGeek, GitHub und in TMview. Exakte Treffer
