@@ -186,9 +186,10 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   document.body.appendChild(badge);
 
   function updateBadge(): void {
-    const appVersion = __APP_VERSION__.split('.').slice(0, 2).join('.');
+    // Версия целиком, включая суффикс фичи: во время разработки надо видеть,
+    // какая ветка собрана (1.0.0-platform), а в релизе суффикса просто нет.
     badge.innerHTML =
-      `${L().versionWord} ${appVersion} (<a href="${rulesDocUrl()}" target="_blank" rel="noopener">` +
+      `${L().versionWord} ${__APP_VERSION__} (<a href="${rulesDocUrl()}" target="_blank" rel="noopener">` +
       `${L().rulesWord(RULES_VERSION)}</a>, hashCommit=${__GIT_HASH__})`;
   }
 
