@@ -1,12 +1,20 @@
 # Публикация игры на GitHub Pages: https://telesik.github.io/bonesai/
 # Деплой идёт напрямую из Actions-артефакта — ветка gh-pages не используется,
 # собранные файлы в git не попадают.
+#
+# Схема версионирования (см. CLAUDE.md): main — текущий релиз, живёт
+# в корне сайта; каждая ветка feature/* собирается в подкаталог
+# /bonesai/<версия из app/package.json этой ветки>/ (фиче-версии вида
+# 1.0.0-<feature>). Любой пуш в main или feature/* пересобирает сайт
+# целиком: корень — из main, подкаталоги — из вершин всех feature-веток.
 
 name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'feature/**'
   workflow_dispatch:
 
 permissions:
@@ -24,6 +32,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -31,15 +42,36 @@ jobs:
           cache-dependency-path: app/package-lock.json
       # Сайт живёт на подпути /bonesai/, поэтому base передаётся флагом
       # только здесь — локальные npm run dev/build не затронуты.
-      - name: Build
+      - name: Build main (релиз, корень сайта)
         working-directory: app
         run: |
           npm ci
           npm run build -- --base=/bonesai/
+      - name: Assemble site root
+        run: |
+          mkdir -p _site
+          cp -R app/dist/. _site/
+      - name: Build feature branches (подкаталоги по фиче-версиям)
+        run: |
+          set -euo pipefail
+          for ref in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/feature/*'); do
+            echo "=== building $ref"
+            wt="$(mktemp -d)"
+            git worktree add --force "$wt" "$ref"
+            ver="$(node -p "require('$wt/app/package.json').version")"
+            if [ -z "$ver" ] || [ "$ver" = "undefined" ]; then
+              echo "у ветки $ref нет версии в app/package.json — пропуск"; git worktree remove --force "$wt"; continue
+            fi
+            (cd "$wt/app" && npm ci && npm run build -- --base=/bonesai/"$ver"/)
+            mkdir -p "_site/$ver"
+            cp -R "$wt/app/dist/." "_site/$ver/"
+            git worktree remove --force "$wt"
+            echo "=== $ref → /bonesai/$ver/"
+          done
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: app/dist
+          path: _site
 
   deploy:
     needs: build
