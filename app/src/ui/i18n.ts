@@ -55,7 +55,7 @@ const ru = {
   tipOrient: 'Кости в руке: вертикально или горизонтально',
   tipTotal: 'Общий счёт матча (§10.5)',
   tipSound: 'Звук выставления костей',
-  tipNew: 'Начать новый матч',
+  tipNew: 'Бросить текущий матч',
   tipLang: 'Язык интерфейса',
   confirmNewMatch: 'Бросить текущий матч и начать новый?',
 
@@ -238,7 +238,7 @@ const en: Dict = {
   tipOrient: 'Hand tiles: vertical or horizontal',
   tipTotal: 'Match total (§10.5)',
   tipSound: 'Tile placement sound',
-  tipNew: 'Start a new match',
+  tipNew: 'Abandon the current match',
   tipLang: 'Interface language',
   confirmNewMatch: 'Abandon the current match and start a new one?',
 
@@ -405,7 +405,7 @@ const es: Dict = {
   tipOrient: 'Fichas en mano: vertical u horizontal',
   tipTotal: 'Total del encuentro (§10.5)',
   tipSound: 'Sonido al colocar fichas',
-  tipNew: 'Empezar un encuentro nuevo',
+  tipNew: 'Abandonar el encuentro actual',
   tipLang: 'Idioma de la interfaz',
   confirmNewMatch: '¿Abandonar el encuentro actual y empezar uno nuevo?',
 
@@ -572,7 +572,7 @@ const de: Dict = {
   tipOrient: 'Handsteine: senkrecht oder waagerecht',
   tipTotal: 'Gesamtstand des Matches (§10.5)',
   tipSound: 'Geräusch beim Anlegen',
-  tipNew: 'Neues Match beginnen',
+  tipNew: 'Aktuelles Match abbrechen',
   tipLang: 'Sprache der Oberfläche',
   confirmNewMatch: 'Aktuelles Match abbrechen und ein neues beginnen?',
 
@@ -739,7 +739,7 @@ const pt: Dict = {
   tipOrient: 'Peças na mão: vertical ou horizontal',
   tipTotal: 'Total da partida (§10.5)',
   tipSound: 'Som ao colocar peças',
-  tipNew: 'Começar uma nova partida',
+  tipNew: 'Abandonar a partida atual',
   tipLang: 'Idioma da interface',
   confirmNewMatch: 'Abandonar a partida atual e começar outra?',
 
@@ -904,7 +904,7 @@ const zh: Dict = {
   tipOrient: '手牌方向：竖放或横放',
   tipTotal: '比赛总分（§10.5）',
   tipSound: '放牌音效',
-  tipNew: '开始新比赛',
+  tipNew: '放弃当前比赛',
   tipLang: '界面语言',
   confirmNewMatch: '放弃当前比赛并开始新的一场？',
 
@@ -1077,7 +1077,7 @@ const uk: Dict = {
   tipOrient: 'Кістки в руці: вертикально чи горизонтально',
   tipTotal: 'Загальний рахунок матчу (§10.5)',
   tipSound: 'Звук виставляння кісток',
-  tipNew: 'Почати новий матч',
+  tipNew: 'Покинути поточний матч',
   tipLang: 'Мова інтерфейсу',
   confirmNewMatch: 'Покинути поточний матч і почати новий?',
 
