@@ -139,30 +139,35 @@ body {
   border-color: var(--gold);
 }
 
-/* Выключенный звук: нота под перечёркнутым кругом. */
-#btn-sound {
-  position: relative;
+/* Кнопки со своим значком-рисунком вместо знака-символа. Обводка берёт
+   currentColor, поэтому подсветка при наведении работает так же. */
+.icon-btn svg {
+  display: block;
+  margin: auto;
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-#btn-sound.muted {
-  color: var(--muted);
+/* Значок внутри текстовой кнопки: по размеру буквы, на одной строке
+   с подписью. Нужен, чтобы вход в настройки был узнаваем и тогда,
+   когда язык интерфейса игроку прочитать нечем. */
+.btn-ico {
+  width: 1.15em;
+  height: 1.15em;
+  margin-right: 0.45em;
+  vertical-align: -0.2em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-#btn-sound.muted::after {
-  content: '';
-  position: absolute;
-  inset: 5px;
-  border: 1.7px solid rgba(194, 84, 58, 0.85);
-  border-radius: 50%;
-  background: linear-gradient(
-    to top right,
-    transparent 45%,
-    rgba(194, 84, 58, 0.85) 46.5%,
-    rgba(194, 84, 58, 0.85) 53.5%,
-    transparent 55%
-  );
-  pointer-events: none;
-}
 
 .lang-select {
   appearance: none;
@@ -652,6 +657,12 @@ body {
 
 #settings .card {
   margin: auto;
+}
+
+/* Подпись здесь короткая, а поле узкое: колонка в 130px, рассчитанная на
+   имена игроков, отбрасывала бы выбор языка далеко вправо от слова «Язык». */
+#settings .field label {
+  width: auto;
 }
 
 #overlay {

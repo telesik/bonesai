@@ -19,12 +19,54 @@
           <div id="status-prompt" class="status-prompt"></div>
         </div>
         <div class="topbar-right">
-          <button id="btn-hist" class="icon-btn" data-tip="История ходов: перемотка сыгранных партий">⧗</button>
-          <button id="btn-mark" class="icon-btn" data-tip="Разметить принадлежность ходов: кости первого игрока светлее, второго — темнее">◐</button>
-          <button id="btn-relayout" class="icon-btn" hidden>↺</button>
-          <button id="btn-fit" class="icon-btn" data-tip="Показать всю фигуру целиком (или двойной клик по столу)">⌖</button>
-          <button id="btn-new" class="icon-btn" data-tip="Начать новый матч">⟳</button>
-          <button id="btn-settings" class="icon-btn" data-tip="Настройки">⚙</button>
+          <!-- Значки шапки — собственные рисунки, а не знаки юникода: редкие
+               символы подставляются из разных запасных шрифтов, у каждого своя
+               метрика, и ряд «пляшет» по вертикали — по-своему на каждой
+               системе. Общий viewBox и одна толщина обводки держат ряд ровным. -->
+          <button id="btn-hist" class="icon-btn" data-tip="История ходов: перемотка сыгранных партий">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" />
+              <path d="M3.2 4.4v4.2h4.2" />
+              <path d="M12 7.6V12l3 1.8" />
+            </svg>
+          </button>
+          <button id="btn-mark" class="icon-btn" data-tip="Разметить принадлежность ходов: кости первого игрока светлее, второго — темнее">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.5" />
+              <path d="M12 3.5a8.5 8.5 0 0 1 0 17Z" fill="currentColor" stroke="none" />
+            </svg>
+          </button>
+          <button id="btn-relayout" class="icon-btn" data-tip="Переложить стол" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1" />
+              <path d="M20.8 4.4v4.2h-4.2" />
+            </svg>
+          </button>
+          <button id="btn-fit" class="icon-btn" data-tip="Показать всю фигуру целиком (или двойной клик по столу)">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 9V5.5a1 1 0 0 1 1-1h3.5" />
+              <path d="M15.5 4.5H19a1 1 0 0 1 1 1V9" />
+              <path d="M20 15v3.5a1 1 0 0 1-1 1h-3.5" />
+              <path d="M8.5 19.5H5a1 1 0 0 1-1-1V15" />
+              <circle cx="12" cy="12" r="2.4" />
+            </svg>
+          </button>
+          <button id="btn-settings" class="icon-btn" data-tip="Настройки">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10.07 5.27 L10.37 2.74 A 9.40 9.40 0 0 1 13.63 2.74 L13.93 5.27 A 7.00 7.00 0 0 1 15.39 5.88 L15.39 5.88 L17.39 4.30 A 9.40 9.40 0 0 1 19.70 6.61 L18.12 8.61 A 7.00 7.00 0 0 1 18.73 10.07 L18.73 10.07 L21.26 10.37 A 9.40 9.40 0 0 1 21.26 13.63 L18.73 13.93 A 7.00 7.00 0 0 1 18.12 15.39 L18.12 15.39 L19.70 17.39 A 9.40 9.40 0 0 1 17.39 19.70 L15.39 18.12 A 7.00 7.00 0 0 1 13.93 18.73 L13.93 18.73 L13.63 21.26 A 9.40 9.40 0 0 1 10.37 21.26 L10.07 18.73 A 7.00 7.00 0 0 1 8.61 18.12 L8.61 18.12 L6.61 19.70 A 9.40 9.40 0 0 1 4.30 17.39 L5.88 15.39 A 7.00 7.00 0 0 1 5.27 13.93 L5.27 13.93 L2.74 13.63 A 9.40 9.40 0 0 1 2.74 10.37 L5.27 10.07 A 7.00 7.00 0 0 1 5.88 8.61 L5.88 8.61 L4.30 6.61 A 9.40 9.40 0 0 1 6.61 4.30 L8.61 5.88 A 7.00 7.00 0 0 1 10.07 5.27 Z" />
+              <circle cx="12" cy="12" r="3.1" />
+            </svg>
+          </button>
+          <!-- Собственный значок «выход»: дверной проём и стрелка наружу.
+               Знака-символа с таким смыслом в юникоде нет, а эмодзи-дверь
+               рисуется цветной и выбивается из монохромного ряда. -->
+          <button id="btn-new" class="icon-btn" data-tip="Начать новый матч">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13 4H5.5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1H13" />
+              <path d="M17 12H10" />
+              <path d="M14.5 9 17.5 12l-3 3" />
+            </svg>
+          </button>
         </div>
       </header>
       <section id="hand-top" class="hand"></section>
