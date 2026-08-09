@@ -195,9 +195,39 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
   let vbStart = vb;
   let moved = false;
 
+  // Порог «это драг, а не клик»: пальцу нужен запас больше, чем мыши, —
+  // тап по призраку легко уезжает на 5–8 px.
+  const DRAG_PX = matchMedia('(pointer: coarse)').matches ? 10 : 4;
+
+  // Мультитач: активные указатели и состояние щипка (дистанция и центр
+  // прошлого замера в экранных px; шаги применяются инкрементально).
+  const pointers = new Map<number, { x: number; y: number }>();
+  let pinch: { d: number; cx: number; cy: number } | null = null;
+
+  function pinchFrom(pts: { x: number; y: number }[]): { d: number; cx: number; cy: number } {
+    const [a, b] = [pts[0]!, pts[1]!];
+    return {
+      d: Math.hypot(b.x - a.x, b.y - a.y),
+      cx: (a.x + b.x) / 2,
+      cy: (a.y + b.y) / 2,
+    };
+  }
+
   svg.addEventListener('pointerdown', (ev) => {
     if (ev.button !== 0) return; // панорама и клики — только основной кнопкой
+    pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (pointers.size === 2) {
+      // Второй палец превращает драг в щипок; кликом это уже не станет.
+      dragging = false;
+      moved = true;
+      pinch = pinchFrom([...pointers.values()]);
+      svg.setPointerCapture(ev.pointerId);
+      return;
+    }
+    if (pointers.size > 2 || pinch) return;
     moved = false;
+    // Захват указателя — только когда начинается панорама: захват на svg
+    // ретаргетит события, и клик по призраку перестал бы находить цель.
     if ((ev.target as Element).closest('[data-move]')) return;
     dragging = true;
     dragStart = { x: ev.clientX, y: ev.clientY };
@@ -205,12 +235,40 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     svg.setPointerCapture(ev.pointerId);
   });
   svg.addEventListener('pointermove', (ev) => {
+    if (pointers.has(ev.pointerId)) {
+      pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    }
+    if (pinch && pointers.size >= 2) {
+      const cur = pinchFrom([...pointers.values()]);
+      if (cur.d < 1 || pinch.d < 1) return;
+      const rect = svg.getBoundingClientRect();
+      cancelAnimationFrame(tweenHandle);
+      const w = Math.min(MAX_W, Math.max(MIN_W, vb.w * (pinch.d / cur.d)));
+      const kk = w / vb.w;
+      // Зум вокруг мировой точки под центром щипка…
+      const px = vb.x + ((pinch.cx - rect.left) / rect.width) * vb.w;
+      const py = vb.y + ((pinch.cy - rect.top) / rect.height) * vb.h;
+      let nx = px - (px - vb.x) * kk;
+      let ny = py - (py - vb.y) * kk;
+      // …плюс панорама на смещение самого центра.
+      const scale = w / rect.width;
+      nx -= (cur.cx - pinch.cx) * scale;
+      ny -= (cur.cy - pinch.cy) * scale;
+      vb = { x: nx, y: ny, w, h: vb.h * kk };
+      applyViewBox();
+      pinch = cur;
+      if (autoFit) {
+        autoFit = false;
+        hooks.onViewChange(false);
+      }
+      return;
+    }
     if (!dragging) return;
     const rect = svg.getBoundingClientRect();
     const scale = vb.w / rect.width;
     const dx = (ev.clientX - dragStart.x) * scale;
     const dy = (ev.clientY - dragStart.y) * scale;
-    if (Math.abs(ev.clientX - dragStart.x) + Math.abs(ev.clientY - dragStart.y) > 4) {
+    if (Math.abs(ev.clientX - dragStart.x) + Math.abs(ev.clientY - dragStart.y) > DRAG_PX) {
       moved = true;
     }
     if (moved) {
@@ -219,7 +277,15 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
       applyViewBox();
     }
   });
-  const endDrag = (): void => {
+  const endDrag = (ev: PointerEvent): void => {
+    pointers.delete(ev.pointerId);
+    if (pinch) {
+      // Щипок закончился (или потерял палец): остаток не превращаем в драг,
+      // чтобы стол не прыгал; следующий pointerdown начнёт жест заново.
+      // Если пальцев всё ещё два и больше — пересеваем замер по оставшимся.
+      pinch = pointers.size >= 2 ? pinchFrom([...pointers.values()]) : null;
+      return;
+    }
     if (dragging && moved) {
       autoFit = false;
       hooks.onViewChange(false);

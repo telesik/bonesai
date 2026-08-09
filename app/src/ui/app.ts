@@ -65,7 +65,67 @@ interface PileSprite {
 
 // ---------------------------------------------------------------------------
 
-export function initApp(): void {
+/** Синхронное хранилище настроек и матча; по умолчанию — localStorage. */
+export interface KVStore {
+  get(key: string): string | null;
+  set(key: string, value: string): void;
+  remove(key: string): void;
+}
+
+/** Дополнительный пункт селектора соперника (регистрирует платформенная
+ *  надстройка). id не должен совпадать с 'human'/'easy'/'normal'/'strong'. */
+export interface OpponentOption {
+  id: string;
+  /** Локализованная подпись пункта: надстройка переводит сама. */
+  label: () => string;
+}
+
+/** Параметры старта матча, собранные стартовым экраном. */
+export interface StartSetup {
+  names: [string, string];
+  first: 0 | 1;
+  variant: Variant;
+}
+
+export interface AppOptions {
+  /** Хранилище вместо localStorage (например, нативные Preferences). */
+  storage?: KVStore;
+  /** Открытие внешних ссылок (например, системным браузером вместо вкладки). */
+  openExternal?: (url: string) => void;
+  /** Вызывается после КАЖДОГО применённого хода — человека, бота и хода,
+   *  пришедшего через handle.dispatch. Транспорт удалённой игры обязан
+   *  фильтровать по месту хода, иначе получит эхо собственных ходов. */
+  onMove?: (move: Move, round: GameState) => void;
+  /** Дополнительные пункты селектора соперника. */
+  opponentOptions?: readonly OpponentOption[];
+  /** Старт матча с дополнительным пунктом селектора: стандартный старт не
+   *  выполняется, матч запускает надстройка (например, через своё лобби). */
+  onOpponentStart?: (id: string, setup: StartSetup) => void;
+}
+
+/** Управление приложением снаружи: вход внешних ходов и чтение состояния. */
+export interface AppHandle {
+  /** Применить ход (например, пришедший от удалённого игрока).
+   *  Тихо игнорируется в режиме истории и при завершённой партии —
+   *  вызывающий при необходимости сверяется с getMatch(). */
+  dispatch(move: Move): void;
+  getMatch(): MatchState | null;
+  /** Назначить место, управляемое извне: в его ход локальный ввод
+   *  заблокирован, ходы приходят через dispatch. null — снять. */
+  setRemoteSeat(seat: 0 | 1 | null): void;
+  render(): void;
+}
+
+export function initApp(opts: AppOptions = {}): AppHandle {
+  const store: KVStore = opts.storage ?? {
+    get: (k) => localStorage.getItem(k),
+    set: (k, v) => localStorage.setItem(k, v),
+    remove: (k) => localStorage.removeItem(k),
+  };
+
+  // Дополнительные пункты соперника имеют смысл только вместе с обработчиком
+  // старта: пункт без onOpponentStart делал бы кнопку старта молча мёртвой.
+  const extraOpponents = opts.onOpponentStart ? (opts.opponentOptions ?? []) : [];
   // Общие SVG-определения (градиенты, тени) — один раз на документ:
   // на них ссылаются и стол, и кости в руках, и базар.
   const defsHost = document.createElement('div');
@@ -150,10 +210,11 @@ export function initApp(): void {
   let handsVertical = true;
   let confirmOn = false;
   let tutorOn = false;
-  type OpponentPref = 'human' | BotLevel;
+  // Помимо встроенных значений допускает id пунктов из opts.opponentOptions.
+  type OpponentPref = 'human' | BotLevel | (string & {});
   let opponentPref: OpponentPref = 'human';
   try {
-    const prefs = JSON.parse(localStorage.getItem(LS_UI_KEY) ?? '{}') as {
+    const prefs = JSON.parse(store.get(LS_UI_KEY) ?? '{}') as {
       markOwners?: boolean;
       autoFit?: boolean;
       sound?: boolean;
@@ -169,7 +230,14 @@ export function initApp(): void {
     handsVertical = prefs.handsVertical !== false;
     confirmOn = !!prefs.confirm;
     tutorOn = !!prefs.tutor;
-    if (['human', 'easy', 'normal', 'strong'].includes(prefs.opponent ?? '')) {
+    const validOpp = [
+      'human',
+      'easy',
+      'normal',
+      'strong',
+      ...extraOpponents.map((o) => o.id),
+    ];
+    if (validOpp.includes(prefs.opponent ?? '')) {
       opponentPref = prefs.opponent as OpponentPref;
     }
     setLocale(detectLocale(prefs.locale ?? null));
@@ -180,7 +248,7 @@ export function initApp(): void {
 
   function persistUi(): void {
     try {
-      localStorage.setItem(
+      store.set(
         LS_UI_KEY,
         JSON.stringify({
           markOwners,
@@ -200,7 +268,7 @@ export function initApp(): void {
 
   const board = createBoard(svgBoard, {
     onMove(move) {
-      if (replay || botsTurn()) return;
+      if (replay || notMyTurn()) return;
       if (performance.now() - lastDispatchAt < 300) return;
       // Режим подтверждения: клик по тени лишь выбирает ход; ставит его
       // повторный клик по той же тени или кнопка подтверждения.
@@ -236,7 +304,7 @@ export function initApp(): void {
 
   function persist(): void {
     try {
-      if (match) localStorage.setItem(LS_KEY, JSON.stringify({ v: 2, match }));
+      if (match) store.set(LS_KEY, JSON.stringify({ v: 2, match }));
     } catch {
       /* приватный режим — не страшно */
     }
@@ -245,14 +313,14 @@ export function initApp(): void {
   function loadSaved(): MatchState | null {
     const drop = (): null => {
       try {
-        localStorage.removeItem(LS_KEY);
+        store.remove(LS_KEY);
       } catch {
         /* ignore */
       }
       return null;
     };
     try {
-      const raw = localStorage.getItem(LS_KEY);
+      const raw = store.get(LS_KEY);
       if (!raw) return null;
       const TILE_RE = /^[0-6]-[0-6]$/;
       const tiles = (x: unknown): boolean =>
@@ -327,10 +395,14 @@ export function initApp(): void {
     for (let i = 0; i < dead; i++) pileSprites[i]!.alive = false;
   }
 
-  // --- Бот -------------------------------------------------------------------
+  // --- Бот и внешние места ----------------------------------------------------
 
-  /** Сейчас очередь бота: человеку клики по игровым элементам недоступны. */
-  function botsTurn(): boolean {
+  /** Место, управляемое извне (setRemoteSeat): его ходы приходят через
+   *  handle.dispatch, локальный ввод в его ход заблокирован. */
+  let remoteSeat: 0 | 1 | null = null;
+
+  /** Сейчас очередь бота (именно бота — его ход генерирует scheduleBotMove). */
+  function botsTurnNow(): boolean {
     return (
       !replay &&
       !!match &&
@@ -340,14 +412,27 @@ export function initApp(): void {
     );
   }
 
+  /** Сейчас ход не человека за этим экраном (бот или внешнее место):
+   *  клики по игровым элементам недоступны. */
+  function notMyTurn(): boolean {
+    if (botsTurnNow()) return true;
+    return (
+      !replay &&
+      !!match &&
+      remoteSeat !== null &&
+      match.round.phase !== 'over' &&
+      match.round.current === remoteSeat
+    );
+  }
+
   let botTimer = 0;
 
   /** Ход бота с человеческой паузой. Вызывается после каждого рендера. */
   function scheduleBotMove(): void {
     clearTimeout(botTimer);
-    if (!botsTurn()) return;
+    if (!botsTurnNow()) return;
     botTimer = window.setTimeout(() => {
-      if (!botsTurn() || !match) return;
+      if (!botsTurnNow() || !match) return;
       try {
         const move = chooseBotMove(match.round, {
           level: match.bot!.level,
@@ -458,6 +543,7 @@ export function initApp(): void {
     const placedSeq = animateSeq;
     if (placedSeq !== null && flyFrom) flyingSeq = placedSeq;
     persist();
+    opts.onMove?.(move, round);
     renderAll();
     if (placedSeq !== null) {
       if (flyFrom) flyPlacement(placedSeq, round.placed[placedSeq]!.tile, flyFrom);
@@ -494,7 +580,7 @@ export function initApp(): void {
     renderTopbar(round);
     // В ход бота руки и куча не приглашают к действию: без классов
     // playable/can-draw — кликать всё равно нельзя.
-    const legalUi = botsTurn() ? [] : legal;
+    const legalUi = notMyTurn() ? [] : legal;
     renderHand(0, round, legalUi);
     renderHand(1, round, legalUi);
     renderBoneyard(round, legalUi);
@@ -508,7 +594,7 @@ export function initApp(): void {
   }
 
   function deriveSelection(round: GameState, legal: readonly Move[]): void {
-    if (round.phase === 'over' || botsTurn()) {
+    if (round.phase === 'over' || notMyTurn()) {
       // В ход бота человеку нечего выбирать: без выделения, без призраков.
       selected = null;
       if (round.phase === 'over') return;
@@ -575,7 +661,7 @@ export function initApp(): void {
       return { event, prompt: L().statusRoundOver };
     }
     const name = `<b>${esc(nameOf(round.current))}</b>`;
-    if (botsTurn()) {
+    if (notMyTurn()) {
       return { event, prompt: L().statusBotThinking(name) };
     }
     if (round.phase === 'root') {
@@ -775,7 +861,7 @@ export function initApp(): void {
   /** Подсказка режима обучения: что сейчас можно сделать и как. */
   function tutorText(round: GameState, legal: readonly Move[]): string {
     if (round.phase === 'over') return L().tutorOver;
-    if (botsTurn()) return L().tutorBotTurn;
+    if (notMyTurn()) return L().tutorBotTurn;
     if (pending) return L().tutorPending;
     if (round.phase === 'root') {
       if (round.mustPlay) return L().tutorRootMustPlay;
@@ -846,6 +932,9 @@ export function initApp(): void {
   function scheduleAutoPass(round: GameState, legal: readonly Move[]): void {
     clearTimeout(autoPassTimer);
     if (round.phase === 'over') return;
+    // Пас внешнего места не разыгрывается локально — он придёт через dispatch,
+    // иначе обе стороны отправили бы его одновременно.
+    if (remoteSeat !== null && round.current === remoteSeat) return;
     if (legal.length === 1 && legal[0]!.type === 'pass') {
       // Тост показываем один раз, но таймер перезаводим при каждом рендере:
       // любой промежуточный рендер сбрасывает clearTimeout выше.
@@ -1109,7 +1198,8 @@ export function initApp(): void {
                 ['easy', L().oppBotEasy],
                 ['normal', L().oppBotNormal],
                 ['strong', L().oppBotStrong],
-              ] as const
+                ...extraOpponents.map((o) => [o.id, esc(o.label())] as const),
+              ] as readonly (readonly [string, string])[]
             )
               .map(
                 ([v, label]) =>
@@ -1176,8 +1266,15 @@ export function initApp(): void {
     const n0 = ($('#inp-n0') as HTMLInputElement).value.trim() || L().defaultP1;
     const n1 = ($('#inp-n1') as HTMLInputElement).value.trim() || L().defaultP2;
     const variant = { doubleOnlyCloses: ($('#inp-variant') as HTMLInputElement).checked };
-    const bot =
-      opponentPref === 'human' ? null : { player: 1 as const, level: opponentPref };
+    const opp = opponentPref;
+    const botLevel =
+      opp === 'easy' || opp === 'normal' || opp === 'strong' ? (opp as BotLevel) : null;
+    if (opp !== 'human' && botLevel === null) {
+      // Дополнительный пункт селектора: матч запускает надстройка.
+      opts.onOpponentStart?.(opp, { names: [n0, n1], first: lotFirst, variant });
+      return;
+    }
+    const bot = botLevel ? { player: 1 as const, level: botLevel } : null;
     match = startMatch({ names: [n0, n1], first: lotFirst, variant, bot });
     selected = null;
     pending = null;
@@ -1271,7 +1368,7 @@ export function initApp(): void {
 
   function onPileClick(spriteIdx: number, spriteEl: HTMLElement): void {
     if (!match || match.round.phase === 'over') return;
-    if (botsTurn()) {
+    if (notMyTurn()) {
       toast(L().toastNoDrawNow, true);
       return;
     }
@@ -1327,6 +1424,15 @@ export function initApp(): void {
   document.addEventListener('click', (ev) => {
     const target = ev.target as HTMLElement;
 
+    // Внешние ссылки: надстройка может открывать их по-своему
+    // (например, системным браузером вместо вкладки WebView).
+    const ext = target.closest<HTMLAnchorElement>('a[target="_blank"]');
+    if (ext && opts.openExternal) {
+      ev.preventDefault();
+      opts.openExternal(ext.href);
+      return;
+    }
+
     const pile = target.closest<HTMLElement>('[data-pile]');
     if (pile) {
       if (!replay) onPileClick(Number(pile.dataset.pile), pile);
@@ -1338,7 +1444,7 @@ export function initApp(): void {
       const tile = handTile.dataset.tile as TileId;
       const player = Number(handTile.dataset.player) as 0 | 1;
       const round = match.round;
-      if (player !== round.current || botsTurn()) return;
+      if (player !== round.current || notMyTurn()) return;
       if (round.mustPlay && tile !== round.mustPlay) {
         toast(
           round.phase === 'root'
@@ -1400,7 +1506,7 @@ export function initApp(): void {
         lotFirst = null;
         replay = null;
         pending = null;
-        localStorage.removeItem(LS_KEY);
+        store.remove(LS_KEY);
         renderAll();
       } else if (action === 'history') {
         showRoundOver = false;
@@ -1574,7 +1680,7 @@ export function initApp(): void {
     lotFirst = null;
     replay = null;
     pending = null;
-    localStorage.removeItem(LS_KEY);
+    store.remove(LS_KEY);
     renderAll();
   });
 
@@ -1620,10 +1726,20 @@ export function initApp(): void {
     console.error(err);
     match = null;
     try {
-      localStorage.removeItem(LS_KEY);
+      store.remove(LS_KEY);
     } catch {
       /* ignore */
     }
     renderAll();
   }
+
+  return {
+    dispatch,
+    getMatch: () => match,
+    setRemoteSeat(seat) {
+      remoteSeat = seat;
+      renderAll();
+    },
+    render: renderAll,
+  };
 }

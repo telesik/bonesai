@@ -51,6 +51,11 @@ body {
   align-items: center;
   gap: 16px;
   padding: 8px 16px;
+  /* Вырезы мобильных экранов (чёлка, Dynamic Island): шапка отступает от
+     системных зон; на десктопе env() равен нулю и ничего не меняет. */
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  padding-left: calc(16px + env(safe-area-inset-left, 0px));
+  padding-right: calc(16px + env(safe-area-inset-right, 0px));
   background: linear-gradient(180deg, #1b2520, #141c18);
   border-bottom: 1px solid rgba(201, 168, 106, 0.18);
   min-height: 52px;
@@ -196,6 +201,11 @@ body {
   border-bottom: 1px solid rgba(0, 0, 0, 0.35);
   transition: box-shadow 0.3s ease, background 0.3s ease;
   z-index: 4;
+}
+
+/* Нижняя рука упирается в системную зону жестов — отступаем от неё. */
+#hand-bottom {
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
 }
 
 .hand.active {
@@ -902,8 +912,8 @@ hr.sep {
 
 #version-badge {
   position: fixed;
-  right: 10px;
-  bottom: 4px;
+  right: calc(10px + env(safe-area-inset-right, 0px));
+  bottom: calc(4px + env(safe-area-inset-bottom, 0px));
   z-index: 30;
   font-size: 10.5px;
   letter-spacing: 0.03em;
@@ -968,6 +978,9 @@ hr.sep {
     flex-wrap: wrap;
     gap: 6px 10px;
     padding: 6px 10px;
+    padding-top: calc(6px + env(safe-area-inset-top, 0px));
+    padding-left: calc(10px + env(safe-area-inset-left, 0px));
+    padding-right: calc(10px + env(safe-area-inset-right, 0px));
     min-height: 0;
   }
 
@@ -1018,6 +1031,10 @@ hr.sep {
     gap: 2px;
     min-height: 0;
     padding: 5px 10px 7px;
+  }
+
+  #hand-bottom {
+    padding-bottom: calc(7px + env(safe-area-inset-bottom, 0px));
   }
 
   .hand-meta {
@@ -1087,8 +1104,8 @@ hr.sep {
 
   #version-badge {
     font-size: 9px;
-    right: 6px;
-    bottom: 2px;
+    right: calc(6px + env(safe-area-inset-right, 0px));
+    bottom: calc(2px + env(safe-area-inset-bottom, 0px));
   }
 }
 
