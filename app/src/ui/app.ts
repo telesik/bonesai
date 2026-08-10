@@ -219,6 +219,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   const elHistoryBar = $('#history-bar');
   const elTutorBar = $('#tutor-bar');
   const elConfirmBar = $('#confirm-bar');
+  const elBtnMirror = $('#btn-mirror');
   const elBtnHist = $('#btn-hist');
   const elBtnMark = $('#btn-mark');
   const elBtnRelayout = $('#btn-relayout');
@@ -390,7 +391,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   });
   // Сохранённое зеркало применяем до первого рендера, иначе стол успел бы
   // мигнуть обычной стороной.
-  board.setMirror(mirrorBoard);
+  applyMirror(mirrorBoard);
 
   // --- Утилиты -----------------------------------------------------------------
 
@@ -1776,6 +1777,26 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     if (!board.isAutoFit()) board.ensureVisible(match.round.placed.length - 1);
   });
 
+  /**
+   * Зеркало стола — одна точка входа для кнопки в шапке и галочки в настройках,
+   * чтобы они не разошлись: галочка строится при открытии настроек и читает
+   * mirrorBoard, а кнопка показывает состояние классом active.
+   * Сохранение и перерисовку делает вызывающий — у настроек они общие
+   * на все переключатели.
+   */
+  function applyMirror(on: boolean): void {
+    mirrorBoard = on;
+    board.setMirror(on);
+    elBtnMirror.classList.toggle('active', on);
+  }
+
+  // Кнопка «зеркальный стол»: решение о стороне приходит и посреди партии.
+  elBtnMirror.addEventListener('click', () => {
+    applyMirror(!mirrorBoard);
+    persistUi();
+    renderAll();
+  });
+
   // Галочка «автомасштаб»: включена — держим всё дерево в кадре.
   elBtnFit.addEventListener('click', () => {
     autoFitOn = !autoFitOn;
@@ -1860,8 +1881,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     } else if (id === 'hands') {
       handsVertical = on;
     } else if (id === 'mirror') {
-      mirrorBoard = on;
-      board.setMirror(on);
+      applyMirror(on);
     }
     persistUi();
     renderAll();
@@ -1890,6 +1910,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
 
   /** Локализуемые статические элементы: подсказки кнопок, бейдж, селект языка. */
   function applyStaticTexts(): void {
+    elBtnMirror.dataset.tip = L().tipMirror;
     elBtnHist.dataset.tip = L().tipHistory;
     elBtnMark.dataset.tip = L().tipMark;
     elBtnFit.dataset.tip = L().tipFit;
