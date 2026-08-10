@@ -5,6 +5,7 @@ import {
   hasValue,
   parseTile,
   placementGeometry,
+  ROOT_CELLS,
   type GameState,
   type Move,
   type TileId,
@@ -66,12 +67,44 @@ function fitMinW(viewportWidth: number): number {
   return viewportWidth < 700 ? CELL * 11 : CELL * 18;
 }
 
+/**
+ * Мировая клетка → клетка сцены. Зеркальный стол (корень справа, дерево растёт
+ * влево) отражается ровно здесь: состояние, протокол и правила о зеркале не
+ * знают (§6.3 — раскладка правилам безразлична), меняется только картинка.
+ * Отражать надо координаты, а не всю сцену через scale(-1,1): при отражении
+ * сцены зеркальными стали бы и цифры на маркерах концов. А вот кости отражение
+ * переворачивает на 180° — и это верно: раскладки пипсов центрально-симметричны,
+ * так что кость выглядит как та же кость, просто повёрнутая, как на настоящем
+ * столе.
+ */
+export function sceneCell(c: Vec, mirror: boolean): Vec {
+  return mirror ? { x: -c.x, y: c.y } : c;
+}
+
+/**
+ * Кость, лежащая в клетках a→b, — в SVG-transform. Чистая функция (а не метод
+ * доски) затем, чтобы зеркало проверялось тестом: DOM-тестов в проекте нет,
+ * а «центр отразили, а угол забыли» глазами ловится не всегда.
+ */
+export function tileTransform(a: Vec, b: Vec, mirror = false): string {
+  const c0 = sceneCell(a, mirror);
+  const c1 = sceneCell(b, mirror);
+  const cx = ((c0.x + c1.x) / 2) * CELL;
+  const cy = ((c0.y + c1.y) / 2) * CELL;
+  const angle = (Math.atan2(c1.y - c0.y, c1.x - c0.x) * 180) / Math.PI;
+  return `translate(${cx.toFixed(1)} ${cy.toFixed(1)}) rotate(${angle.toFixed(1)})`;
+}
+
 export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
   let vb: ViewBox = { x: -CELL * 9, y: -CELL * 5, w: CELL * 18, h: CELL * 10 };
   let autoFit = true;
   let lastGame: GameState | null = null;
   let lastGhostCells: Vec[] = [];
   let tweenHandle = 0;
+  let mirror = false;
+
+  const scene = (c: Vec): Vec => sceneCell(c, mirror);
+  const tileTr = (a: Vec, b: Vec): string => tileTransform(a, b, mirror);
 
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   applyViewBox();
@@ -111,7 +144,8 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     let maxX = 1.5;
     let minY = -1.5;
     let maxY = 1.5;
-    const grow = (c: Vec): void => {
+    const grow = (raw: Vec): void => {
+      const c = scene(raw);
       minX = Math.min(minX, c.x - 1.4);
       maxX = Math.max(maxX, c.x + 1.4);
       minY = Math.min(minY, c.y - 1.4);
@@ -123,7 +157,8 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     }
     for (const e of game.ends) grow(e.attach);
     for (const c of lastGhostCells) grow(c);
-    // Сырые границы фигуры — для проверки пересечения с кучей базара.
+    // Границы самой фигуры на сцене, до подгонки под аспект и минимум, —
+    // по ним проверяется пересечение с кучей базара.
     const rawMinX = minX;
     const rawMaxX = maxX;
     const rawMinY = minY;
@@ -160,6 +195,8 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
    * Куча базара лежит поверх стола в правом нижнем углу. Автомасштаб не
    * должен прятать дерево под ней: пока фигура пересекает кучу на экране,
    * кадр расширяется вправо-вниз — дерево уезжает к левому верхнему углу.
+   * С зеркальным столом всё то же самое, меняется только, какой край дерева
+   * подбирается к куче: обычно — растущий кончик, в зеркале — корень.
    */
   function avoidPile(vb: ViewBox, raw: { x0: number; y0: number; x1: number; y1: number }): ViewBox {
     const pile = document.querySelector('#boneyard');
@@ -336,13 +373,6 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
 
   // --- Отрисовка --------------------------------------------------------------
 
-  function tileTransform(c0: Vec, c1: Vec): string {
-    const cx = ((c0.x + c1.x) / 2) * CELL;
-    const cy = ((c0.y + c1.y) / 2) * CELL;
-    const angle = (Math.atan2(c1.y - c0.y, c1.x - c0.x) * 180) / Math.PI;
-    return `translate(${cx.toFixed(1)} ${cy.toFixed(1)}) rotate(${angle.toFixed(1)})`;
-  }
-
   /** Числа, для которых на столе уже все 7 костей: мёртвые концы (§9.1). */
   function deadValues(game: GameState): Set<number> {
     const dead = new Set<number>();
@@ -386,7 +416,7 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
       const isLast = p.seq === game.placed.length - 1 && game.placed.length > 1;
       const flags = `${isLast ? ' last-placed' : ''}${opts.hideSeq === p.seq ? ' incoming' : ''}`;
       parts.push(
-        `<g transform="${tileTransform(p.cells[0], p.cells[1])}" data-seq="${p.seq}" class="placed kind-${p.kind} ${role}${flags}"${ownFilter}>
+        `<g transform="${tileTr(p.cells[0], p.cells[1])}" data-seq="${p.seq}" class="placed kind-${p.kind} ${role}${flags}"${ownFilter}>
           <title>${t.hi}:${t.lo}${p.kind === 'root' ? L().tileRootSuffix : ''}${
             p.kind === 'cross' ? L().tileClosedSuffix : ''
           }${owner}</title>${face}${
@@ -401,10 +431,12 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     // Тупик корня (§6.2): с этой стороны кости не ставятся никогда.
     const root = game.placed[0];
     if (root && root.kind === 'root') {
-      const dx = root.cells[0]!.x - root.cells[1]!.x;
-      const dy = root.cells[0]!.y - root.cells[1]!.y;
-      const tx = (root.cells[0]!.x + dx * 0.5) * CELL + dx * 14;
-      const ty = (root.cells[0]!.y + dy * 0.5) * CELL + dy * 14;
+      const r0 = scene(root.cells[0]!);
+      const r1 = scene(root.cells[1]!);
+      const dx = r0.x - r1.x;
+      const dy = r0.y - r1.y;
+      const tx = (r0.x + dx * 0.5) * CELL + dx * 14;
+      const ty = (r0.y + dy * 0.5) * CELL + dy * 14;
       parts.push(
         `<g class="end-marker dead root-dead" transform="translate(${tx.toFixed(1)} ${ty.toFixed(1)})">
           <title>${L().rootDeadTitle}</title>
@@ -417,8 +449,9 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     // Маркеры открытых концов.
     const dead = deadValues(game);
     for (const e of game.ends) {
-      const x = e.attach.x * CELL;
-      const y = e.attach.y * CELL;
+      const a = scene(e.attach);
+      const x = a.x * CELL;
+      const y = a.y * CELL;
       const isDead = dead.has(e.value);
       const cls = `end-marker${e.fresh ? ' fresh' : ''}${isDead ? ' dead' : ''}`;
       const hint = isDead
@@ -444,9 +477,12 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     if (opts.selected !== null) {
       for (const m of opts.ghostMoves) {
         if (m.type === 'placeRoot') {
-          // Как ляжет корень (§6.2): горизонтально, тупик слева.
-          lastGhostCells.push({ x: -1, y: 0 }, { x: 0, y: 0 });
-          parts.push(ghostSvg(game, m, [{ x: -1, y: 0 }, { x: 0, y: 0 }], 'root', opts));
+          // Как ляжет корень (§6.2): горизонтально, тупик с дальней от роста
+          // стороны — на зеркальном столе это правый край, а не левый. Клетки
+          // берём у движка: разъедься они с ROOT_CELLS, тень корня встала бы
+          // не туда, где потом окажется сам корень.
+          lastGhostCells.push(ROOT_CELLS[0], ROOT_CELLS[1]);
+          parts.push(ghostSvg(game, m, ROOT_CELLS, 'root', opts));
         } else if (m.type === 'place') {
           const geo = placementGeometry(game, m.tile, m.endId, m.mode, m.side);
           lastGhostCells.push(geo.cells[0], geo.cells[1]);
@@ -498,7 +534,7 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     const pending = opts.pending && samePlacement(move, opts.pending) ? ' pending' : '';
     // Пипсы призрака — реальные значения кости после выставления.
     return `
-    <g transform="${tileTransform(cells[0], cells[1])}" class="ghost ghost-${mode}${pending}" ${dataMove}>
+    <g transform="${tileTr(cells[0], cells[1])}" class="ghost ghost-${mode}${pending}" ${dataMove}>
       <title>${modeLabel(mode)}</title>
       <rect x="${-TILE_L / 2}" y="${-TILE_W / 2}" width="${TILE_L}" height="${TILE_W}"
         rx="${TILE_R}" class="ghost-body"/>
@@ -541,10 +577,11 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
     if (!p) return null;
     const rect = svg.getBoundingClientRect();
     if (rect.width === 0) return null;
-    const cx = ((p.cells[0].x + p.cells[1].x) / 2) * CELL;
-    const cy = ((p.cells[0].y + p.cells[1].y) / 2) * CELL;
-    const angle =
-      (Math.atan2(p.cells[1].y - p.cells[0].y, p.cells[1].x - p.cells[0].x) * 180) / Math.PI;
+    const c0 = scene(p.cells[0]);
+    const c1 = scene(p.cells[1]);
+    const cx = ((c0.x + c1.x) / 2) * CELL;
+    const cy = ((c0.y + c1.y) / 2) * CELL;
+    const angle = (Math.atan2(c1.y - c0.y, c1.x - c0.x) * 180) / Math.PI;
     return {
       x: rect.left + ((cx - vb.x) / vb.w) * rect.width,
       y: rect.top + ((cy - vb.y) / vb.h) * rect.height,
@@ -577,6 +614,22 @@ export function createBoard(svg: SVGSVGElement, hooks: BoardHooks) {
       const k = vb.w / rect.width;
       setViewBox({ ...vb, x: vb.x + dx * k, y: vb.y + dy * k }, true);
     },
+    /**
+     * Зеркальный стол: корень справа, дерево растёт влево. Настройка вида для
+     * тех, кто привык видеть стол с противоположной стороны. Кадр отражаем
+     * вместе с фигурой — при выключенном автомасштабе картинка остаётся там же
+     * на экране, а не уезжает за край. Сцену не перерисовываем: вызывающий
+     * делает это сам следующим же рендером, а лишний render здесь стоил бы
+     * второго fit, отменяющего только что запущенный переезд кадра.
+     */
+    setMirror(on: boolean): void {
+      if (on === mirror) return;
+      mirror = on;
+      cancelAnimationFrame(tweenHandle);
+      vb = { ...vb, x: -(vb.x + vb.w) };
+      applyViewBox();
+    },
+
     /** Явно включить/выключить автомасштаб (галочка в шапке). */
     setAutoFit(on: boolean, animate = true): void {
       autoFit = on;

@@ -262,6 +262,12 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   let autoFitOn = true;
   let soundOn = true;
   let handsVertical = true;
+  /**
+   * Зеркальный стол: корень справа, дерево растёт влево. Нужно тем, кто привык
+   * сидеть напротив — у соперника через стол всё выглядело именно так, и после
+   * разворота стола к себе привычная картинка ломается.
+   */
+  let mirrorBoard = false;
   let confirmOn = false;
   let tutorOn = false;
   /** Сколько партий доиграно за всё время — по ним предлагаем убрать подсказки. */
@@ -283,6 +289,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
       sound?: boolean;
       locale?: string;
       handsVertical?: boolean;
+      mirror?: boolean;
       confirm?: boolean;
       tutor?: boolean;
       opponent?: string;
@@ -298,6 +305,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     autoFitOn = prefs.autoFit !== false;
     soundOn = prefs.sound !== false;
     handsVertical = prefs.handsVertical !== false;
+    mirrorBoard = !!prefs.mirror;
     confirmOn = !!prefs.confirm;
     tutorOn = !!prefs.tutor;
     roundsDone = Math.max(0, Math.trunc(prefs.roundsDone ?? 0));
@@ -337,6 +345,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
           sound: soundOn,
           locale: getLocale(),
           handsVertical,
+          mirror: mirrorBoard,
           confirm: confirmOn,
           tutor: tutorOn,
           opponent: opponentPref,
@@ -379,6 +388,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
       elBtnFit.classList.toggle('active', auto);
     },
   });
+  // Сохранённое зеркало применяем до первого рендера, иначе стол успел бы
+  // мигнуть обычной стороной.
+  board.setMirror(mirrorBoard);
 
   // --- Утилиты -----------------------------------------------------------------
 
@@ -1800,6 +1812,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         ${row('tutor', tutorOn, L().tipTutor)}
         ${row('confirm', confirmOn, L().tipConfirm)}
         ${row('hands', handsVertical, L().tipOrient)}
+        ${row('mirror', mirrorBoard, L().tipMirror)}
         ${extraToggles
           .map((t) => row(`x:${t.id}`, toggleState.get(t.id) === true, esc(t.label())))
           .join('')}
@@ -1846,6 +1859,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
       if (!on) pending = null;
     } else if (id === 'hands') {
       handsVertical = on;
+    } else if (id === 'mirror') {
+      mirrorBoard = on;
+      board.setMirror(on);
     }
     persistUi();
     renderAll();
