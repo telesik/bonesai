@@ -191,6 +191,14 @@ body {
   border-color: var(--gold);
 }
 
+/* Селект языка в углу стартовой карточки (дубль настройки из ⚙):
+   язык должен находиться и без чтения текста. */
+.lang-corner {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
 .icon-btn.active {
   color: var(--gold);
   border-color: var(--gold);
@@ -691,6 +699,7 @@ body {
 }
 
 .card {
+  position: relative; /* якорь для .lang-corner */
   background: linear-gradient(160deg, #1b2621, #141d18);
   border: 1px solid rgba(201, 168, 106, 0.3);
   border-radius: 16px;

@@ -1300,6 +1300,13 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         : '';
     elOverlay.innerHTML = `
       <div class="card">
+        <!-- Язык — прямо на карточке: игрок, не знающий текущего языка,
+             не догадается заглянуть за шестерёнку. Дубль настройки из ⚙;
+             имена языков в списке написаны на самих языках. -->
+        <select id="inp-lang-start" class="lang-select lang-corner">${LOCALES.map(
+          ({ code, label }) =>
+            `<option value="${code}" ${code === getLocale() ? 'selected' : ''}>${label}</option>`,
+        ).join('')}</select>
         <h1><span class="gold">B</span>onesai</h1>
         <p class="sub">${L().tagline}</p>
         <p class="sub rules-line"><a href="${rulesDocUrl()}" target="_blank" rel="noopener">${L().linkRules}</a>${
@@ -1726,6 +1733,21 @@ export function initApp(opts: AppOptions = {}): AppHandle {
       if (t.id === 'inp-n0') savedP1 = v;
       else if (v !== L().botName) savedP2 = v;
       persistUi();
+    } else if (t.id === 'inp-lang-start') {
+      // Введённые, но ещё не сохранённые имена не теряем; автоподстановки
+      // старого языка не переносим — новые придут с перерисовкой экрана.
+      const n0 = document.querySelector<HTMLInputElement>('#inp-n0')?.value.trim();
+      if (n0 && n0 !== L().defaultP1) savedP1 = n0;
+      const n1 = document.querySelector<HTMLInputElement>('#inp-n1')?.value.trim();
+      if (n1 && n1 !== L().botName && n1 !== L().defaultP2) savedP2 = n1;
+      const varOn = document.querySelector<HTMLInputElement>('#inp-variant')?.checked;
+      setLocale(t.value as Locale);
+      persistUi();
+      applyStaticTexts();
+      renderStartScreen();
+      const varEl = document.querySelector<HTMLInputElement>('#inp-variant');
+      if (varEl && varOn !== undefined) varEl.checked = varOn;
+      renderAll();
     } else if (t.id === 'inp-opp') {
       opponentPref = t.value as OpponentPref;
       persistUi();
