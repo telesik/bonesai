@@ -116,6 +116,10 @@ export interface AppOptions {
   storage?: KVStore;
   /** Открытие внешних ссылок (например, системным браузером вместо вкладки). */
   openExternal?: (url: string) => void;
+  /** Адрес страницы «поддержать авторов» — ссылка на стартовой карточке.
+   *  Задаёт только веб-версия; мобильные сборки опцию не передают:
+   *  донат-ссылок в приложениях магазинов быть не должно (их правила). */
+  supportUrl?: string;
   /** Вызывается после КАЖДОГО применённого хода — человека, бота и хода,
    *  пришедшего через handle.dispatch. Транспорт удалённой игры обязан
    *  фильтровать по месту хода, иначе получит эхо собственных ходов. */
@@ -1298,7 +1302,11 @@ export function initApp(opts: AppOptions = {}): AppHandle {
       <div class="card">
         <h1><span class="gold">B</span>onesai</h1>
         <p class="sub">${L().tagline}</p>
-        <p class="sub rules-line"><a href="${rulesDocUrl()}" target="_blank" rel="noopener">${L().linkRules}</a></p>
+        <p class="sub rules-line"><a href="${rulesDocUrl()}" target="_blank" rel="noopener">${L().linkRules}</a>${
+          opts.supportUrl
+            ? ` · <a href="${opts.supportUrl}" target="_blank" rel="noopener">${L().linkSupport}</a>`
+            : ''
+        }</p>
         <div class="field"><label for="inp-n0">${
           esc(curExtra?.nameLabel?.() ?? '') || L().fieldBottom
         }</label>
