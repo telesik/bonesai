@@ -931,7 +931,8 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     }
     const alive = pileSprites.filter((s) => s.alive).length;
     // Куча уже отрисована и совпадает по составу — не трогаем DOM зря.
-    const key = `${pileRoundKey}|${alive}|${round.boneyard.length}`;
+    // Язык — часть ключа: иначе бейдж «базар: N» переживал бы смену языка.
+    const key = `${getLocale()}|${pileRoundKey}|${alive}|${round.boneyard.length}`;
     if (elBoneyard.dataset.key === key) return;
     elBoneyard.dataset.key = key;
     const tiles = pileSprites
@@ -1155,7 +1156,8 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   function renderBoneyardStatic(state: GameState, seed: number): void {
     elBoneyard.classList.remove('can-draw');
     const count = state.boneyard.length;
-    const key = `replay|${seed}|${count}`;
+    // Язык в ключе — по той же причине, что и в renderBoneyard.
+    const key = `replay|${getLocale()}|${seed}|${count}`;
     if (elBoneyard.dataset.key === key) return;
     elBoneyard.dataset.key = key;
     const rand = scatterRand(seed >>> 0);
@@ -1179,7 +1181,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     total: number,
   ): void {
     elHistoryBar.hidden = false;
-    const barKey = `${rp.data.external}|${rp.data.rounds.length}|${rp.roundIdx}|${total}`;
+    // Язык — часть ключа: селект партий и подсказки кнопок строятся здесь
+    // один раз и без него не обновились бы при смене языка.
+    const barKey = `${getLocale()}|${rp.data.external}|${rp.data.rounds.length}|${rp.roundIdx}|${total}`;
     if (elHistoryBar.dataset.key !== barKey) {
       elHistoryBar.dataset.key = barKey;
       const options = rp.data.rounds
