@@ -71,6 +71,12 @@ registration, so the commercial name is not settled yet.
 Questions about the rules, suggestions, or an offer of a game — Alexey on
 [LinkedIn](https://www.linkedin.com/in/alexey-kiselyov-80809416/).
 
+## Support the authors
+
+The game is free and will stay free. If it gave you a good evening, you can
+say thank you: [Ko-fi](https://ko-fi.com/telesik) or
+[GitHub Sponsors](https://github.com/sponsors/telesik).
+
 ## Licence
 
 The text of the rules and the documentation are released under [CC BY 4.0](LICENSE.en). Use and

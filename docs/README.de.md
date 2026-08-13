@@ -74,6 +74,12 @@ Markeneintragung, daher ist der kommerzielle Name noch nicht festgelegt.
 Fragen zu den Regeln, Vorschläge und Lust auf eine Partie — Alexey auf
 [LinkedIn](https://www.linkedin.com/in/alexey-kiselyov-80809416/).
 
+## Die Autoren unterstützen
+
+Das Spiel ist kostenlos und bleibt es. Wenn es Ihnen einen guten Abend
+geschenkt hat, können Sie Danke sagen: [Ko-fi](https://ko-fi.com/telesik)
+oder [GitHub Sponsors](https://github.com/sponsors/telesik).
+
 ## Lizenz
 
 Der Text der Regeln und die Dokumentation — [CC BY 4.0](LICENSE.de). Frei verwenden und anpassen,

@@ -62,6 +62,11 @@
 关于规则的问题、建议或想来一局——请通过
 [LinkedIn](https://www.linkedin.com/in/alexey-kiselyov-80809416/) 联系 Alexey。
 
+## 支持作者
+
+游戏免费，并将一直免费。如果它带给您一个愉快的夜晚，可以向作者道声谢：
+[Ko-fi](https://ko-fi.com/telesik) 或 [GitHub Sponsors](https://github.com/sponsors/telesik)。
+
 ## 许可
 
 规则文本与文档采用 [CC BY 4.0](LICENSE.zh) 许可。可自由使用与改编，但须署名。
