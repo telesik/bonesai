@@ -137,6 +137,11 @@ export interface AppOptions {
   /** Пользователь сбросил матч (новый матч поверх текущего): надстройке
    *  пора закрыть свои ресурсы (например, сетевую сессию). */
   onMatchReset?: () => void;
+  /** Сохранение файла вместо скачивания через <a download> — в WebView
+   *  оно не работает, мобильная надстройка отдаёт файл системному
+   *  share-листу. Резолв — файл передан (показываем «сохранено»),
+   *  реджект — пользователь отказался или не вышло (молчим). */
+  saveFile?: (name: string, mime: string, text: string) => Promise<void>;
 }
 
 /** Управление приложением снаружи: вход внешних ходов и чтение состояния. */
@@ -1232,12 +1237,22 @@ export function initApp(opts: AppOptions = {}): AppHandle {
       proto = matchProtocol(match);
     }
     if (!proto) return;
-    const blob = new Blob([JSON.stringify(proto, null, 2)], { type: 'application/json' });
+    const json = JSON.stringify(proto, null, 2);
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+    const name = `bonesai-${stamp}.json`;
+    if (opts.saveFile) {
+      // Отказ (реджект) — это «пользователь закрыл share-лист», не ошибка.
+      void opts.saveFile(name, 'application/json', json).then(
+        () => toast(L().toastProtoSaved),
+        () => {},
+      );
+      return;
+    }
+    const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
     a.href = url;
-    a.download = `bonesai-${stamp}.json`;
+    a.download = name;
     a.click();
     URL.revokeObjectURL(url);
     toast(L().toastProtoSaved);
@@ -1504,7 +1519,10 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         <div class="btn-row">
           <button class="btn" data-action="next-round">${L().btnNextRound}</button>
           <span class="result-note">${L().nextFirstNote(esc(nameOf(nextFirst)), why)}</span>
-        </div>${reviewRow}`;
+        </div>${reviewRow}
+        <div class="btn-row">
+          <button class="btn ghost-btn" data-action="abort-match">${L().btnAbortMatch}</button>
+        </div>`;
     }
 
     // Подсказки нужны первые партии, дальше только мешают. Предлагаем убрать
@@ -1671,6 +1689,11 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         renderAll();
         playShuffle();
         toast(L().toastRoundStart(match.rounds.length + 1, nameOf(match.first)));
+      } else if (action === 'abort-match') {
+        // Карточка итогов перекрывает шапку целиком, и «дверь» из неё
+        // не достать (замечено на телефоне) — та же кнопка здесь.
+        // Клик по кнопке шапки — единый путь с её подтверждением.
+        elBtnNew.click();
       } else if (action === 'new-match') {
         match = null;
         lotFirst = null;
