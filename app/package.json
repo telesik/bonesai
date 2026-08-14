@@ -1,7 +1,7 @@
 {
   "name": "bonesai-app",
   "private": true,
-  "version": "1.2.1-startcard-fit",
+  "version": "1.2.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
