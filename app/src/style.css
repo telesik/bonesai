@@ -880,6 +880,52 @@ body {
   margin: 0;
 }
 
+/* Невысокие вьюпорты (телефон с плотной сеткой: Samsung 480dpi даёт всего
+   ~725 CSS px между барами) — карточка с брошенным жребием обязана
+   влезать целиком, иначе оверлей скроллится и низ срезан (баг 0003).
+   Режем воздух, не контент: паддинги оверлея/карточки и вертикальные
+   отступы; min-height жребия не нужен вовсе — кости и так 66px. */
+@media (max-height: 760px) {
+  #overlay {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .card {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .lot-row {
+    margin: 4px 0 0;
+    min-height: 0;
+  }
+
+  /* Кости жребия чуть меньше: и они, и подписи остаются читаемыми,
+     а карточка обязана влезать даже с блоком сохранённого матча. */
+  .lot-row svg {
+    height: 36px;
+    width: auto;
+  }
+
+  .lot-side {
+    gap: 4px;
+    font-size: 12px;
+  }
+
+  .sep {
+    margin: 6px 0;
+  }
+
+  .btn-row {
+    margin-top: 8px;
+  }
+
+  .version-line {
+    margin-top: 4px;
+  }
+}
+
 .lot-side {
   display: flex;
   flex-direction: column;
