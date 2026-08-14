@@ -27,8 +27,7 @@ function ruTiles(n: number): string {
 const ru = {
   // Стартовый экран
   tagline:
-    'Домино, в котором дерево растят и подрезают. Руки открыты, как в шахматах; ' +
-    'единственная случайность — закрытый базар. Ходят по очереди за одним экраном.',
+    'Домино по новым правилам: глубина шахмат и точно отмеренная случайность.',
   linkRules: 'Правила игры',
   linkSupport: 'Поддержать авторов',
   fieldBottom: 'Нижний игрок',
@@ -214,8 +213,7 @@ export type Dict = typeof ru;
 
 const en: Dict = {
   tagline:
-    'Dominoes where you grow and prune a tree. Hands are open like in chess; ' +
-    'the only randomness is the face-down boneyard. Two players take turns at one screen.',
+    'Dominoes with new rules: the depth of chess and precisely measured luck.',
   linkRules: 'Game rules',
   linkSupport: 'Support the authors',
   fieldBottom: 'Bottom player',
@@ -384,8 +382,7 @@ const en: Dict = {
 
 const es: Dict = {
   tagline:
-    'Dominó donde se cultiva y se poda un árbol. Las manos están abiertas como en ajedrez; ' +
-    'el único azar es el pozo boca abajo. Dos jugadores se turnan en una pantalla.',
+    'Dominó con reglas nuevas: la profundidad del ajedrez y un azar bien medido.',
   linkRules: 'Reglas del juego',
   linkSupport: 'Apoyar a los autores',
   fieldBottom: 'Jugador inferior',
@@ -554,8 +551,7 @@ const es: Dict = {
 
 const de: Dict = {
   tagline:
-    'Domino, bei dem ein Baum wächst und beschnitten wird. Die Hände liegen offen wie beim Schach; ' +
-    'der einzige Zufall ist der verdeckte Talon. Zwei Spieler wechseln sich an einem Bildschirm ab.',
+    'Domino mit neuen Regeln: die Tiefe des Schachs und genau dosierter Zufall.',
   linkRules: 'Spielregeln',
   linkSupport: 'Die Autoren unterstützen',
   fieldBottom: 'Unterer Spieler',
@@ -724,8 +720,7 @@ const de: Dict = {
 
 const pt: Dict = {
   tagline:
-    'Dominó em que se cultiva e poda uma árvore. As mãos ficam abertas como no xadrez; ' +
-    'o único acaso é o dorme virado para baixo. Dois jogadores se revezam numa tela.',
+    'Dominó com regras novas: a profundidade do xadrez e um acaso bem medido.',
   linkRules: 'Regras do jogo',
   linkSupport: 'Apoiar os autores',
   fieldBottom: 'Jogador de baixo',
@@ -894,7 +889,7 @@ const pt: Dict = {
 
 const zh: Dict = {
   tagline:
-    '一种“种树与修剪”的多米诺：双方手牌像下棋一样公开，唯一的运气来自扣着的牌堆。两名玩家在同一屏幕轮流行棋。',
+    '规则全新的多米诺：如棋般深邃，运气恰到好处。',
   linkRules: '游戏规则',
   linkSupport: '支持作者',
   fieldBottom: '下方玩家',
@@ -1068,8 +1063,7 @@ function ukTiles(n: number): string {
 
 const uk: Dict = {
   tagline:
-    'Доміно, в якому дерево вирощують і підрізають. Руки відкриті, як у шахах; ' +
-    'єдина випадковість — закритий базар. Ходять по черзі за одним екраном.',
+    'Доміно за новими правилами: глибина шахів і точно відміряна випадковість.',
   linkRules: 'Правила гри',
   linkSupport: 'Підтримати авторів',
   fieldBottom: 'Нижній гравець',
