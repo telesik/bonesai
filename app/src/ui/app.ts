@@ -1519,7 +1519,10 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         <div class="btn-row">
           <button class="btn" data-action="next-round">${L().btnNextRound}</button>
           <span class="result-note">${L().nextFirstNote(esc(nameOf(nextFirst)), why)}</span>
-        </div>${reviewRow}`;
+        </div>${reviewRow}
+        <div class="btn-row">
+          <button class="btn ghost-btn" data-action="abort-match">${L().btnAbortMatch}</button>
+        </div>`;
     }
 
     // Подсказки нужны первые партии, дальше только мешают. Предлагаем убрать
@@ -1686,6 +1689,11 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         renderAll();
         playShuffle();
         toast(L().toastRoundStart(match.rounds.length + 1, nameOf(match.first)));
+      } else if (action === 'abort-match') {
+        // Карточка итогов перекрывает шапку целиком, и «дверь» из неё
+        // не достать (замечено на телефоне) — та же кнопка здесь.
+        // Клик по кнопке шапки — единый путь с её подтверждением.
+        elBtnNew.click();
       } else if (action === 'new-match') {
         match = null;
         lotFirst = null;
