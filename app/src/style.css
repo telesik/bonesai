@@ -182,7 +182,8 @@ body {
   border-radius: 8px;
   height: 34px;
   padding: 0 8px;
-  font-size: 13px;
+  /* 16px, не меньше: iOS-автозум фокуса (баг 0005), как у полей ввода. */
+  font-size: 16px;
   cursor: pointer;
 }
 
@@ -408,6 +409,7 @@ body {
   border: 1px solid rgba(201, 168, 106, 0.3);
   border-radius: 8px;
   padding: 6px 8px;
+  font-size: 16px; /* iOS-автозум фокуса (баг 0005) */
   font-size: 13px;
   max-width: 210px;
 }
@@ -790,7 +792,10 @@ body {
   border: 1px solid rgba(201, 168, 106, 0.3);
   border-radius: 8px;
   padding: 9px 12px;
-  font-size: 15px;
+  /* Не меньше 16px: iOS зумит страницу при фокусе на контроле с меньшим
+     кеглем и НЕ возвращает масштаб после клавиатуры — страница остаётся
+     увеличенной и панорамируется (баг 0005). */
+  font-size: 16px;
   outline: none;
 }
 
@@ -1160,8 +1165,10 @@ hr.sep {
 
   .lang-select {
     height: 30px;
-    font-size: 12px;
-    padding: 0 5px;
+    /* Кегль не опускаем ниже 16px и на узких экранах — iOS-автозум
+       (баг 0005); компактность добираем паддингом. */
+    font-size: 16px;
+    padding: 0 4px;
   }
 
   /* Рука: имя и сумма в одну строку сверху, кости под ними. */
@@ -1393,4 +1400,15 @@ hr.sep {
 .flying-tile.fly-place {
   transition: none;
   transform-origin: 44px 22px;
+}
+
+/* Страховка от iOS-автозума для будущих контролов: фокус на контроле
+   с кеглем <16px зумит страницу, и WKWebView не возвращает масштаб
+   после клавиатуры/пикера (баг 0005, диагностирован watch-метриками
+   на живом iPhone 15.08.2026: vvScale залипал на 16/15 ≈ 1.066).
+   Специфичные классы выше уже держат 16px — это правило ловит
+   безклассовые контролы, которые появятся позже. */
+input[type='text'],
+select {
+  font-size: 16px;
 }
