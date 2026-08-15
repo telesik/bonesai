@@ -120,6 +120,10 @@ export interface AppOptions {
    *  Задаёт только веб-версия; мобильные сборки опцию не передают:
    *  донат-ссылок в приложениях магазинов быть не должно (их правила). */
   supportUrl?: string;
+  /** Адрес политики конфиденциальности — ссылка на экране настроек.
+   *  Задают только мобильные сборки: Apple требует ссылку внутри
+   *  приложения (guideline 5.1.1(i)); веб-версия опцию не передаёт. */
+  privacyUrl?: string;
   /** Вызывается после КАЖДОГО применённого хода — человека, бота и хода,
    *  пришедшего через handle.dispatch. Транспорт удалённой игры обязан
    *  фильтровать по месту хода, иначе получит эхо собственных ходов. */
@@ -1894,6 +1898,11 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         ${extraToggles
           .map((t) => row(`x:${t.id}`, toggleState.get(t.id) === true, esc(t.label())))
           .join('')}
+        ${
+          opts.privacyUrl
+            ? `<p class="sub privacy-line"><a href="${opts.privacyUrl}" target="_blank" rel="noopener">${L().linkPrivacy}</a></p>`
+            : ''
+        }
         <div class="btn-row"><button class="btn" data-action="settings-close">${
           L().btnDone
         }</button></div>
