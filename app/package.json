@@ -1,7 +1,7 @@
 {
   "name": "bonesai-app",
   "private": true,
-  "version": "1.2.4-ios-inputzoom",
+  "version": "1.2.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
