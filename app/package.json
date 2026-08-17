@@ -1,7 +1,7 @@
 {
   "name": "bonesai-app",
   "private": true,
-  "version": "1.2.6-tutor-pile",
+  "version": "1.2.7",
   "type": "module",
   "scripts": {
     "dev": "vite",
