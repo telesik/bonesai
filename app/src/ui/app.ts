@@ -1005,11 +1005,23 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     if (placements.length === 0) {
       return round.boneyard.length > 0 ? L().tutorDraw : L().tutorPass;
     }
-    const base = round.mustPlay ? L().tutorMustPlay : L().tutorPick;
-    const hasTurn = placements.some(
-      (m) => m.mode === 'turn' && (selected === null || m.tile === selected),
-    );
-    return hasTurn ? `${base} ${L().tutorTurnSides}` : base;
+    // Подсказка идёт по стадиям, детали — только про выбранную кость:
+    // раньше все параграфы склеивались в один абзац, и панель занимала
+    // до 42% высоты телефона, накрывая стол (баг 0008).
+    const focus = selected ?? round.mustPlay;
+    const parts = [
+      round.mustPlay ? L().tutorMustPlay : focus ? L().tutorPlace : L().tutorPick,
+    ];
+    if (focus) {
+      const mine = placements.filter((m) => m.tile === focus);
+      if (mine.some((m) => m.mode === 'turn')) parts.push(L().tutorTurnSides);
+      if (mine.some((m) => m.mode === 'cross')) parts.push(L().tutorCross);
+      // Ограничение §6.4 объясняем там, где оно и мешает: у свежего конца
+      // теней меньше, чем игрок ждёт.
+      const fresh = new Set(round.ends.filter((e) => e.fresh).map((e) => e.id));
+      if (mine.some((m) => fresh.has(m.endId))) parts.push(L().tutorFresh);
+    }
+    return parts.join(' ');
   }
 
   function renderTutorBar(round: GameState, legal: readonly Move[]): void {
@@ -1556,6 +1568,61 @@ export function initApp(opts: AppOptions = {}): AppHandle {
 
   // --- Добор из базара с полётом кости ------------------------------------------
 
+  /**
+   * Экранный прямоугольник всей кучи — по местам ВСЕХ костей партии, включая
+   * уже разобранные: зона задана раскладкой в начале партии и не съёживается
+   * по ходу игры (баг 0007). null — рисовать нечего (базар пуст).
+   */
+  function pileZone(): { l: number; t: number; r: number; b: number } | null {
+    const any = elBoneyard.querySelector<HTMLElement>('.pile-tile');
+    if (!any || pileSprites.length === 0) return null;
+    // Размеры спрайта — до поворота (offset*), масштаб контейнера — из rect:
+    // на телефоне куча ужата целиком через transform: scale(0.6).
+    const w = any.offsetWidth;
+    const h = any.offsetHeight;
+    const rect = elBoneyard.getBoundingClientRect();
+    const k = elBoneyard.offsetWidth ? rect.width / elBoneyard.offsetWidth : 1;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const s of pileSprites) {
+      // Кость лежит повёрнутой — её след шире собственных w×h.
+      const a = (s.rot * Math.PI) / 180;
+      const halfW = (Math.abs(w * Math.cos(a)) + Math.abs(h * Math.sin(a))) / 2;
+      const halfH = (Math.abs(w * Math.sin(a)) + Math.abs(h * Math.cos(a))) / 2;
+      const cx = s.x + w / 2;
+      const cy = s.y + h / 2;
+      minX = Math.min(minX, cx - halfW);
+      minY = Math.min(minY, cy - halfH);
+      maxX = Math.max(maxX, cx + halfW);
+      maxY = Math.max(maxY, cy + halfH);
+    }
+    return {
+      l: rect.left + minX * k,
+      t: rect.top + minY * k,
+      r: rect.left + maxX * k,
+      b: rect.top + maxY * k,
+    };
+  }
+
+  /** Ближайший к точке живой спрайт кучи — ему и «улетать» при доборе. */
+  function nearestPileSprite(x: number, y: number): { idx: number; el: HTMLElement } | null {
+    let best: { idx: number; el: HTMLElement } | null = null;
+    let bestDist = Infinity;
+    for (const el of elBoneyard.querySelectorAll<HTMLElement>('.pile-tile')) {
+      const r = el.getBoundingClientRect();
+      const dx = r.left + r.width / 2 - x;
+      const dy = r.top + r.height / 2 - y;
+      const d = dx * dx + dy * dy;
+      if (d < bestDist) {
+        bestDist = d;
+        best = { idx: Number(el.dataset.pile), el };
+      }
+    }
+    return best;
+  }
+
   function onPileClick(spriteIdx: number, spriteEl: HTMLElement): void {
     if (!match || match.round.phase === 'over') return;
     if (notMyTurn()) {
@@ -1627,6 +1694,25 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     if (pile) {
       if (!replay) onPileClick(Number(pile.dataset.pile), pile);
       return;
+    }
+
+    // Мимо кости, но в границах кучи: при малом базаре между спрайтами
+    // зияют просветы, и добор срабатывал через раз (баг 0007). Улетает
+    // ближайшая к пальцу кость; какая выдана — по-прежнему решает движок.
+    // Ход по тени, кнопка, кость в руке и открытый оверлей важнее кучи.
+    if (
+      !replay &&
+      elOverlay.hidden &&
+      !target.closest('[data-move],[data-action],[data-tile]')
+    ) {
+      const zone = pileZone();
+      if (zone && ev.clientX >= zone.l && ev.clientX <= zone.r && ev.clientY >= zone.t && ev.clientY <= zone.b) {
+        const near = nearestPileSprite(ev.clientX, ev.clientY);
+        if (near) {
+          onPileClick(near.idx, near.el);
+          return;
+        }
+      }
     }
 
     const handTile = target.closest<HTMLElement>('[data-tile]');
