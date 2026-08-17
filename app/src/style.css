@@ -103,9 +103,14 @@ body {
 .status-prompt {
   font-size: 14px;
   color: var(--ivory);
+  /* Подсказку хода лучше перенести на вторую строку, чем обрезать
+     многоточием: на планшете экран широкий, а остаток шапки узкий —
+     бренд и ряд значков забирают своё (баг 0006). Две строки влезают
+     в min-height шапки, поэтому на десктопе она не подрастает. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .status-prompt b {
@@ -1163,6 +1168,9 @@ hr.sep {
   .status-prompt {
     font-size: 13px;
     white-space: normal;
+    /* На телефоне статус занимает свою строку шапки целиком — здесь
+       длинному переводу с длинным именем можно и три строки. */
+    -webkit-line-clamp: 3;
   }
 
   .topbar-right {
@@ -1277,7 +1285,10 @@ hr.sep {
   left: 50%;
   transform: translateX(-50%);
   max-width: min(720px, 94%);
-  background: rgba(16, 22, 19, 0.94);
+  /* Матовое стекло вместо глухого фона: под панелью видно дерево,
+     а текст остаётся читаемым (баг 0008). */
+  background: rgba(16, 22, 19, 0.72);
+  backdrop-filter: blur(5px);
   border: 1px solid rgba(201, 168, 106, 0.4);
   border-radius: 12px;
   padding: 8px 14px;
@@ -1286,6 +1297,9 @@ hr.sep {
   font-size: 13px;
   line-height: 1.45;
   color: rgba(239, 230, 208, 0.92);
+  /* Панель только рассказывает — тапы уходят столу под ней, иначе на
+     телефоне она накрывает тень корневого хода и ход не поставить. */
+  pointer-events: none;
 }
 
 #tutor-bar[hidden] {
