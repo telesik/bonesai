@@ -1005,11 +1005,23 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     if (placements.length === 0) {
       return round.boneyard.length > 0 ? L().tutorDraw : L().tutorPass;
     }
-    const base = round.mustPlay ? L().tutorMustPlay : L().tutorPick;
-    const hasTurn = placements.some(
-      (m) => m.mode === 'turn' && (selected === null || m.tile === selected),
-    );
-    return hasTurn ? `${base} ${L().tutorTurnSides}` : base;
+    // Подсказка идёт по стадиям, детали — только про выбранную кость:
+    // раньше все параграфы склеивались в один абзац, и панель занимала
+    // до 42% высоты телефона, накрывая стол (баг 0008).
+    const focus = selected ?? round.mustPlay;
+    const parts = [
+      round.mustPlay ? L().tutorMustPlay : focus ? L().tutorPlace : L().tutorPick,
+    ];
+    if (focus) {
+      const mine = placements.filter((m) => m.tile === focus);
+      if (mine.some((m) => m.mode === 'turn')) parts.push(L().tutorTurnSides);
+      if (mine.some((m) => m.mode === 'cross')) parts.push(L().tutorCross);
+      // Ограничение §6.4 объясняем там, где оно и мешает: у свежего конца
+      // теней меньше, чем игрок ждёт.
+      const fresh = new Set(round.ends.filter((e) => e.fresh).map((e) => e.id));
+      if (mine.some((m) => fresh.has(m.endId))) parts.push(L().tutorFresh);
+    }
+    return parts.join(' ');
   }
 
   function renderTutorBar(round: GameState, legal: readonly Move[]): void {
