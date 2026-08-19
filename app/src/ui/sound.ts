@@ -28,6 +28,13 @@ let samplesLoading = false;
 
 function ensureCtx(): AudioContext | null {
   if (!enabled) return null;
+  // 'closed' необратим (resume() из него не выводит) — например iOS закрывает
+  // контекст WKWebView, пока поверх показан SFSafariViewController (баг 0010).
+  // master привязан к старому ctx.destination, тоже пересоздаётся ниже в out().
+  if (ctx && ctx.state === 'closed') {
+    ctx = null;
+    master = null;
+  }
   if (!ctx) {
     try {
       ctx = new AudioContext();
