@@ -577,13 +577,12 @@ export function initApp(opts: AppOptions = {}): AppHandle {
    * Полёт кости из руки к месту установки. Цель пересчитывается каждый кадр:
    * автомасштаб в это же время может панорамировать и зумить стол.
    */
-  function flyPlacement(seq: number, tile: TileId, from: DOMRect): void {
+  function flyPlacement(seq: number, values: readonly [number, number], from: DOMRect): void {
     flightCancel?.();
     flyingSeq = seq; // отменённый полёт мог сбросить флаг скрытия
-    const pt = parseTile(tile);
     const clone = document.createElement('div');
     clone.className = 'flying-tile fly-place';
-    clone.innerHTML = tileSvgElement(tileFace(pt.hi, pt.lo, { shadow: 'flat' }), 88);
+    clone.innerHTML = tileSvgElement(tileFace(values[0], values[1], { shadow: 'flat' }), 88);
     document.body.appendChild(clone);
     const start = { x: from.left + from.width / 2, y: from.top + from.height / 2 };
     const startAngle = handsVertical ? 90 : 0;
@@ -675,7 +674,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     opts.onMove?.(move, round);
     renderAll();
     if (placedSeq !== null) {
-      if (flyFrom) flyPlacement(placedSeq, round.placed[placedSeq]!.tile, flyFrom);
+      if (flyFrom) flyPlacement(placedSeq, round.placed[placedSeq]!.values, flyFrom);
       // Автомасштаб сам держит всё в кадре; без него доводим кость минимальным
       // сдвигом — после перекладки дерева она могла уехать за край.
       if (!board.isAutoFit()) board.ensureVisible(placedSeq);
