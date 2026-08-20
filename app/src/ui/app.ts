@@ -1557,6 +1557,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         <h2>${causeTitle}</h2>
         <p class="sub">${causeSub}${result.winner === null ? L().resultTieNote : ''}</p>
         <div class="result-grid">${rows}</div>
+        <div class="match-round">${L().matchRoundLabel(match.rounds.length)}</div>
         <div class="match-score">${esc(nameOf(0))} ${match.totals[0]} : ${match.totals[1]} ${esc(
           nameOf(1),
         )}</div>
