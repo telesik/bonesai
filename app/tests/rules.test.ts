@@ -6,6 +6,7 @@ import {
   isDouble,
   legalMoves,
   newRound,
+  replayRound,
   placementsForTile,
   scoreRound,
   startMatch,
@@ -325,6 +326,24 @@ describe('завершение партии (§9) и очки (§10)', () => {
     const r = scoreRound([['3-4'], ['2-5']], 'fish');
     expect(r.added).toEqual([7, 7]);
     expect(r.winner).toBeNull();
+  });
+});
+
+describe('время хода (t, идея 0003)', () => {
+  it('t не влияет на легальность, попадает в историю и переживает реплей', () => {
+    let s = newRound({ seed: 5, first: 0, variant: BASE });
+    // Первый ход — корень, второй — обычное выставление: обе ветки
+    // moveEquals (placeRoot и place) проходят с лишним полем t.
+    s = applyMove(s, { ...legalMoves(s)[0]!, t: 4321 });
+    expect(s.history[0]!.t).toBe(4321);
+    s = applyMove(s, { ...legalMoves(s)[0]!, t: 777 });
+    expect(s.history[1]!.t).toBe(777);
+    // Ход без t остаётся ходом без t — движок ничего не подставляет.
+    s = applyMove(s, legalMoves(s)[0]!);
+    expect(s.history[2]!.t).toBeUndefined();
+    // Реплей протокола с t: та же проверка легальности, t сохраняется.
+    const replayed = replayRound({ seed: 5, first: 0, moves: s.history }, BASE);
+    expect(replayed.history).toEqual(s.history);
   });
 });
 

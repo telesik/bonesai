@@ -647,8 +647,22 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   // прилетающий уже в перерисованный DOM (куча базара, призраки).
   let lastDispatchAt = 0;
 
-  function dispatch(move: Move): void {
+  // --- Время на ход (идея 0003) -------------------------------------------------
+  // Замер честный: от показа позиции до dispatch. Всё, что разбивает ход
+  // (уход приложения с глаз, просмотр истории, восстановление из сейва),
+  // обнуляет turnStartedAt — такой ход уходит в историю без t.
+  let turnStartedAt: number | null = null;
+  let turnKey = '';
+  /** Матч восстановлен из сейва: первый показанный ход не мерить. */
+  let spoilNextTurn = false;
+
+  /** external — ход рождён не за этим экраном (BLE-надстройка):
+   *  своё t не подставляем, пришедшее не трогаем. */
+  function dispatch(move: Move, external = false): void {
     if (replay || !match || match.round.phase === 'over') return;
+    if (!external && move.t === undefined && turnStartedAt !== null) {
+      move = { ...move, t: Math.max(0, Math.round(performance.now() - turnStartedAt)) };
+    }
     clearTimeout(autoPassTimer);
     // Точка старта полёта: кость в руке ходящего (до применения хода).
     let flyFrom: DOMRect | null = null;
@@ -722,6 +736,18 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     }
     const round = match.round;
     const legal = round.phase === 'over' ? [] : legalMoves(round);
+
+    // Ход начинается, когда позиция показана: смена ключа заводит таймер
+    // заново. Сид в ключе различает и партии, и матчи — иначе первая
+    // позиция любого матча («0 ходов») совпадала бы с первой позицией
+    // предыдущего. Повторные рендеры того же хода (смена языка, зеркало,
+    // пан/зум) таймер не трогают; скрытое окно сразу портит замер.
+    const tk = `${round.seed}|${round.history.length}`;
+    if (tk !== turnKey) {
+      turnKey = tk;
+      turnStartedAt = spoilNextTurn || document.hidden ? null : performance.now();
+      spoilNextTurn = false;
+    }
 
     deriveSelection(round, legal);
     ensurePileSprites();
@@ -1118,6 +1144,8 @@ export function initApp(opts: AppOptions = {}): AppHandle {
 
   function openHistory(): void {
     if (!match) return;
+    // Просмотр истории — не обдумывание позиции: замер испорчен (0003).
+    turnStartedAt = null;
     const rounds: RoundProtocol[] = match.rounds.map((r) => ({
       seed: r.seed,
       first: r.first,
@@ -1510,6 +1538,8 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     remoteSeat = null;
     opts.onMatchReset?.();
     match = startMatch({ names: [n0, n1], first: lotFirst, variant, bot });
+    // Новый матч — новый отсчёт времени хода, каким бы ни был сид (0003).
+    turnKey = '';
     selected = null;
     pending = null;
     pileRoundKey = -1;
@@ -1519,6 +1549,34 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     renderAll();
     playShuffle();
     toast(L().toastFirstOpen(nameOf(lotFirst)));
+  }
+
+  /**
+   * Сумма значений с подстановкой среднего вместо null (идея 0003):
+   * (sum · length / known) — то же, что «каждому null — среднее
+   * известных». Все значения null — null: показывать нечего.
+   * Подстановка живёт только на показе — в лог она не пишется.
+   */
+  function avgFill(vals: readonly (number | null)[]): number | null {
+    const known = vals.filter((v): v is number => v !== null);
+    if (known.length === 0) return null;
+    const sum = known.reduce((a, b) => a + b, 0);
+    return Math.round((sum * vals.length) / known.length);
+  }
+
+  /** Оценка времени партии: ходы без честного t получают среднее
+   *  по замеренным ходам этой же партии. */
+  function roundTimeMs(moves: readonly Move[]): number | null {
+    return avgFill(moves.map((m) => (typeof m.t === 'number' ? m.t : null)));
+  }
+
+  /** м:сс до часа, дальше ч:мм:сс — три сегмента не спутать с двумя. */
+  function fmtDuration(ms: number): string {
+    const s = Math.round(ms / 1000);
+    const h = Math.floor(s / 3600);
+    const min = Math.floor((s % 3600) / 60);
+    const ss = String(s % 60).padStart(2, '0');
+    return h > 0 ? `${h}:${String(min).padStart(2, '0')}:${ss}` : `${min}:${ss}`;
   }
 
   function renderRoundOver(): void {
@@ -1588,6 +1646,19 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         </div>`;
     }
 
+    // Время партии и матча (0003) — только когда есть честные замеры.
+    // Партия совсем без замеров (старый сейв, всё скрытым окном) на показе
+    // получает среднее замеренных партий — лог при этом остаётся честным.
+    const perRound = match.rounds.map((r) => roundTimeMs(r.moves));
+    const knownRounds = perRound.filter((v): v is number => v !== null);
+    let timeRow = '';
+    if (knownRounds.length > 0) {
+      const avg = knownRounds.reduce((a, b) => a + b, 0) / knownRounds.length;
+      const rt = Math.round(perRound[perRound.length - 1] ?? avg);
+      const mt = Math.round(perRound.reduce((acc: number, v) => acc + (v ?? avg), 0));
+      timeRow = `<div class="match-round">${L().resultTime(fmtDuration(rt), fmtDuration(mt))}</div>`;
+    }
+
     // Подсказки нужны первые партии, дальше только мешают. Предлагаем убрать
     // их один раз и больше не возвращаемся к вопросу, каким бы ни был ответ.
     const tutorOffer =
@@ -1606,6 +1677,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         <p class="sub">${causeSub}${result.winner === null ? L().resultTieNote : ''}</p>
         <div class="result-grid">${rows}</div>
         <div class="match-round">${L().matchRoundLabel(match.rounds.length)}</div>
+        ${timeRow}
         <div class="match-score">${esc(nameOf(0))} ${match.totals[0]} : ${match.totals[1]} ${esc(
           nameOf(1),
         )}</div>
@@ -1805,6 +1877,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         const saved = loadSaved();
         if (saved) {
           match = saved;
+          // Ход, разбитый перезапуском приложения, не меряем (идея 0003).
+          spoilNextTurn = true;
+          turnKey = '';
           selected = null;
           pending = null;
           pileRoundKey = -1;
@@ -1875,6 +1950,19 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   });
 
   // Ползунок и селект партии в панели истории; выбор файла протокола.
+  // Приложение ушло с глаз (сворачивание, блокировка, внешний браузер) —
+  // текущий замер времени хода испорчен (идея 0003).
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) turnStartedAt = null;
+  });
+  // WKWebView/бфкэш могут усыпить страницу и без visibilitychange.
+  window.addEventListener('pagehide', () => {
+    turnStartedAt = null;
+  });
+  document.addEventListener('freeze', () => {
+    turnStartedAt = null;
+  });
+
   document.addEventListener('input', (ev) => {
     const t = ev.target as HTMLInputElement;
     if (t.id === 'replay-slider' && replay) {
@@ -2150,7 +2238,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     // открыт режим истории, молча терялся бы (dispatch в replay — no-op).
     dispatch: (m) => {
       if (replay) exitReplay();
-      dispatch(m);
+      dispatch(m, true);
     },
     getMatch: () => match,
     setRemoteSeat(seat) {
@@ -2166,6 +2254,8 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         bot: null,
       });
       remoteSeat = o.remoteSeat;
+      // Сид рематча приходит извне и может повториться — ключ сбрасываем (0003).
+      turnKey = '';
       selected = null;
       pending = null;
       pileRoundKey = -1;
@@ -2181,6 +2271,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     nextRoundWith(seed) {
       if (!match || match.outcome) return;
       match = nextRound(match, seed);
+      turnKey = '';
       selected = null;
       pending = null;
       pileRoundKey = -1;
