@@ -803,6 +803,23 @@ body {
   font-size: 14px;
 }
 
+/* Цель матча: ряд радиокнопок 50/100/150/200; на узких экранах
+   ряд переносится, а не вылезает за карточку. */
+.target-opts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.target-opts .check {
+  margin: 0;
+  white-space: nowrap;
+  /* Радио-метки — тоже label внутри .field: без сброса они наследуют
+     колонку 130px подписи поля и разъезжаются на всю карточку. */
+  width: auto;
+}
+
 .field input[type='text'] {
   flex: 1;
   background: #0f1613;

@@ -87,6 +87,16 @@ export type LogEntry =
 export interface Variant {
   /** §11.1 «Дубль только закрывает»: дубль нельзя ставить прямо. */
   readonly doubleOnlyCloses: boolean;
+  /** Цель матча (§10.5): проигрывает набравший столько очков.
+   *  Поле необязательное, без него — канонические 100: старые
+   *  протоколы, сохранённые матчи и сетевые сборки остаются валидными
+   *  (тот же приём, что у move.side). */
+  readonly target?: number;
+}
+
+/** Цель матча: правило «нет поля — канонические 100» в одном месте. */
+export function matchTarget(variant: Variant): number {
+  return variant.target ?? 100;
 }
 
 export interface GameState {

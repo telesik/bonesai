@@ -17,6 +17,7 @@ import {
   pipSum,
   replayRound,
   seedFromCrypto,
+  matchTarget,
   startMatch,
   validateProtocol,
   type GameState,
@@ -293,6 +294,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   // Помимо встроенных значений допускает id пунктов из opts.opponentOptions.
   type OpponentPref = 'human' | BotLevel | (string & {});
   let opponentPref: OpponentPref = 'human';
+  /** Цель матча (§10.5): к выбору предлагаются эти значения, канон — 100. */
+  const MATCH_TARGETS: readonly number[] = [50, 100, 150, 200];
+  let targetPref = 100;
   // Имена игроков переживают перезапуск (пустая строка = не задано).
   let savedP1 = '';
   let savedP2 = '';
@@ -312,6 +316,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
       toggles?: Record<string, boolean>;
       roundsDone?: number;
       tutorAsked?: boolean;
+      target?: number;
     };
     markOwners = !!prefs.markOwners;
     if (typeof prefs.p1Name === 'string') savedP1 = prefs.p1Name.slice(0, 16);
@@ -333,6 +338,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     ];
     if (validOpp.includes(prefs.opponent ?? '')) {
       opponentPref = prefs.opponent as OpponentPref;
+    }
+    if (typeof prefs.target === 'number' && MATCH_TARGETS.includes(prefs.target)) {
+      targetPref = prefs.target;
     }
     for (const t of extraToggles) {
       toggleState.set(t.id, prefs.toggles?.[t.id] ?? t.initial);
@@ -363,6 +371,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
           confirm: confirmOn,
           tutor: tutorOn,
           opponent: opponentPref,
+          target: targetPref,
           p1Name: savedP1,
           p2Name: savedP2,
           toggles: Object.fromEntries(toggleState),
@@ -460,6 +469,12 @@ export function initApp(opts: AppOptions = {}): AppHandle {
         typeof r.seed === 'number' &&
         Array.isArray(r.history) &&
         Array.isArray(m.rounds) &&
+        // Цель матча из сырого JSON решает, когда матч кончится, —
+        // порченое значение (0, строка) сломало бы finishRound.
+        !!m.variant &&
+        targetOk(m.variant.target) &&
+        !!r.variant &&
+        targetOk(r.variant.target) &&
         (m.bot == null ||
           ((m.bot.player === 0 || m.bot.player === 1) &&
             ['easy', 'normal', 'strong'].includes(m.bot.level)));
@@ -467,6 +482,11 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     } catch {
       return drop();
     }
+  }
+
+  /** Валидная цель матча в сыром JSON: поля нет или целое больше нуля. */
+  function targetOk(t: unknown): boolean {
+    return t === undefined || (typeof t === 'number' && Number.isInteger(t) && t > 0);
   }
 
   function toast(text: string, warn = false): void {
@@ -993,7 +1013,7 @@ export function initApp(opts: AppOptions = {}): AppHandle {
 
   /** Подсказка режима обучения: что сейчас можно сделать и как. */
   function tutorText(round: GameState, legal: readonly Move[]): string {
-    if (round.phase === 'over') return L().tutorOver;
+    if (round.phase === 'over') return L().tutorOver(matchTarget(round.variant));
     // Ход не человека за этим экраном: бот думает сам, а за удалённым
     // местом (BLE-матч) сидит живой игрок — «ботом» его не называть.
     if (botsTurnNow()) return L().tutorBotTurn;
@@ -1292,7 +1312,13 @@ export function initApp(opts: AppOptions = {}): AppHandle {
       ) {
         throw new Error(L().errNotProto);
       }
-      const variant: Variant = { doubleOnlyCloses: !!data.variant?.doubleOnlyCloses };
+      const importedTarget = data.variant?.target;
+      const variant: Variant = {
+        doubleOnlyCloses: !!data.variant?.doubleOnlyCloses,
+        ...(typeof importedTarget === 'number' && targetOk(importedTarget)
+          ? { target: importedTarget }
+          : {}),
+      };
       const check = validateProtocol({ ...data, variant });
       if (!check.ok) {
         throw new Error(L().errRoundBad(check.round + 1, check.error));
@@ -1384,6 +1410,15 @@ export function initApp(opts: AppOptions = {}): AppHandle {
               )
               .join('')}
           </select></div>
+        <div class="field"><label>${L().fieldTarget}</label>
+          <span class="target-opts">
+            ${MATCH_TARGETS.map(
+              (v) =>
+                `<label class="check"><input type="radio" name="match-target" value="${v}" ${
+                  v === targetPref ? 'checked' : ''
+                }>${v}</label>`,
+            ).join('')}
+          </span></div>
         <label class="check"><input id="inp-variant" type="checkbox">
           ${L().variantText}
         </label>
@@ -1455,7 +1490,13 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     const n0 = ($('#inp-n0') as HTMLInputElement).value.trim() || L().defaultP1;
     const n1 =
       document.querySelector<HTMLInputElement>('#inp-n1')?.value.trim() || L().defaultP2;
-    const variant = { doubleOnlyCloses: ($('#inp-variant') as HTMLInputElement).checked };
+    const variant: Variant = {
+      doubleOnlyCloses: ($('#inp-variant') as HTMLInputElement).checked,
+      // Канонические 100 в состояние и протокол не пишем: без поля они
+      // подразумеваются, а протоколы остаются совместимыми со старыми
+      // сборками (важно для сетевого матча).
+      ...(targetPref !== 100 ? { target: targetPref } : {}),
+    };
     const opp = opponentPref;
     const botLevel =
       opp === 'easy' || opp === 'normal' || opp === 'strong' ? (opp as BotLevel) : null;
@@ -1851,6 +1892,10 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     } else if (t.id === 'inp-protocol' && t.files?.[0]) {
       void importProtocol(t.files[0]);
       t.value = '';
+    } else if (t.name === 'match-target') {
+      // Радио строятся из MATCH_TARGETS — чужих значений тут не бывает.
+      targetPref = Number(t.value);
+      persistUi();
     } else if (t.id === 'inp-n0' || t.id === 'inp-n1') {
       // Имена запоминаются между запусками; автоимена ботов не сохраняем.
       const v = t.value.trim().slice(0, 16);

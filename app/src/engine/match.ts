@@ -1,9 +1,9 @@
-// Матч — серия партий до 100 очков (§10.5).
+// Матч — серия партий до 100 очков (§10.5); другая цель — variant.target.
 
 import { seedFromCrypto, type RngState } from './rng';
 import { newRound } from './rules';
 import type { BotLevel } from './bot';
-import type { GameState, Move, RoundResult, Variant } from './state';
+import { matchTarget, type GameState, type Move, type RoundResult, type Variant } from './state';
 
 /** За какую сторону и с какой силой играет бот. */
 export interface BotSeat {
@@ -76,7 +76,8 @@ export function finishRound(match: MatchState): MatchState {
     { ...result, first: match.first, seed: match.round.seed, moves: match.round.history },
   ];
   let outcome: MatchOutcome | null = null;
-  if (totals[0] >= 100 || totals[1] >= 100) {
+  const target = matchTarget(match.variant);
+  if (totals[0] >= target || totals[1] >= target) {
     outcome =
       totals[0] === totals[1]
         ? { kind: 'draw' }

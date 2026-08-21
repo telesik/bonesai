@@ -180,6 +180,7 @@ const ru = {
   tipRelayout: 'Переложить ветки по-другому: раскладка на правила не влияет (§6.3)',
   rootDeadTitle: 'Тупик корня — с этой стороны кости не ставятся (§6.2)',
   fieldOpponent: 'Соперник',
+  fieldTarget: 'Матч до',
   oppHuman: 'человек',
   oppBotEasy: 'бот — лёгкий',
   oppBotNormal: 'бот — обычный',
@@ -206,8 +207,8 @@ const ru = {
   tutorDraw:
     'Сходить нечем — кликните кучу базара (§8.2). Кость подойдёт — обязаны сходить ею; нет — останется в руке, ход перейдёт.',
   tutorPass: 'Сходить нечем, базар пуст — ход пропускается сам (§8.3).',
-  tutorOver:
-    'Партия окончена: очки получает тот, у кого сумма на руках больше (§10.3). Матч проигрывает набравший 100 (§10.5).',
+  tutorOver: (target: number) =>
+    `Партия окончена: очки получает тот, у кого сумма на руках больше (§10.3). Матч проигрывает набравший ${target} (§10.5).`,
   tutorPending:
     'Проверьте выбранный ход: поставить — кнопкой или повторным кликом по тени; передумали — отмена или другая тень.',
 
@@ -359,6 +360,7 @@ const en: Dict = {
   tipRelayout: 'Rearrange the branches differently: the layout does not affect the rules (§6.3)',
   rootDeadTitle: 'Root dead end — no tiles on this side (§6.2)',
   fieldOpponent: 'Opponent',
+  fieldTarget: 'Play to',
   oppHuman: 'human',
   oppBotEasy: 'bot — easy',
   oppBotNormal: 'bot — normal',
@@ -385,8 +387,8 @@ const en: Dict = {
   tutorDraw:
     'No move — click the boneyard pile (§8.2). If the drawn tile fits, you must play it; otherwise it stays in your hand and the turn passes.',
   tutorPass: 'No move and the boneyard is empty — the turn is passed automatically (§8.3).',
-  tutorOver:
-    'The game is over: points go to whoever holds more (§10.3). Whoever reaches 100 loses the match (§10.5).',
+  tutorOver: (target) =>
+    `The game is over: points go to whoever holds more (§10.3). Whoever reaches ${target} loses the match (§10.5).`,
   tutorPending:
     'Check the selected move: place it with the button or by clicking the ghost again; changed your mind — cancel or pick another ghost.',
 
@@ -535,6 +537,7 @@ const es: Dict = {
   tipRelayout: 'Reacomodar las ramas: la disposición no afecta a las reglas (§6.3)',
   rootDeadTitle: 'Extremo ciego de la raíz: por este lado no se colocan fichas (§6.2)',
   fieldOpponent: 'Rival',
+  fieldTarget: 'Jugar hasta',
   oppHuman: 'humano',
   oppBotEasy: 'bot — fácil',
   oppBotNormal: 'bot — normal',
@@ -562,8 +565,8 @@ const es: Dict = {
   tutorDraw:
     'Sin jugada — haga clic en el pozo (§8.2). Si la ficha sirve, debe jugarla; si no, se queda en la mano y el turno pasa.',
   tutorPass: 'Sin jugada y pozo vacío: el turno se pasa solo (§8.3).',
-  tutorOver:
-    'Juego terminado: puntúa quien retiene más en la mano (§10.3). Pierde el encuentro quien llega a 100 (§10.5).',
+  tutorOver: (target) =>
+    `Juego terminado: puntúa quien retiene más en la mano (§10.3). Pierde el encuentro quien llega a ${target} (§10.5).`,
   tutorPending:
     'Revise la jugada elegida: colóquela con el botón o con otro clic en la sombra; si cambia de idea — cancele o elija otra sombra.',
 
@@ -712,6 +715,7 @@ const de: Dict = {
   tipRelayout: 'Zweige anders legen: die Anordnung berührt die Regeln nicht (§6.3)',
   rootDeadTitle: 'Sackgasse der Wurzel — an dieser Seite wird nicht angelegt (§6.2)',
   fieldOpponent: 'Gegner',
+  fieldTarget: 'Match bis',
   oppHuman: 'Mensch',
   oppBotEasy: 'Bot — leicht',
   oppBotNormal: 'Bot — normal',
@@ -739,8 +743,8 @@ const de: Dict = {
   tutorDraw:
     'Kein Zug — klicken Sie den Talon an (§8.2). Passt der Stein, müssen Sie ihn legen; sonst bleibt er in der Hand und der Gegner ist am Zug.',
   tutorPass: 'Kein Zug und der Talon ist leer — der Zug wird automatisch übersprungen (§8.3).',
-  tutorOver:
-    'Die Partie ist zu Ende: Punkte bekommt, wer mehr auf der Hand behält (§10.3). Das Match verliert, wer 100 erreicht (§10.5).',
+  tutorOver: (target) =>
+    `Die Partie ist zu Ende: Punkte bekommt, wer mehr auf der Hand behält (§10.3). Das Match verliert, wer ${target} erreicht (§10.5).`,
   tutorPending:
     'Prüfen Sie den gewählten Zug: legen — per Knopf oder erneutem Klick auf den Schatten; umentschieden — abbrechen oder einen anderen Schatten wählen.',
 
@@ -889,6 +893,7 @@ const pt: Dict = {
   tipRelayout: 'Reacomodar os ramos: a disposição não afeta as regras (§6.3)',
   rootDeadTitle: 'Beco da raiz — deste lado não se joga (§6.2)',
   fieldOpponent: 'Adversário',
+  fieldTarget: 'Jogar até',
   oppHuman: 'humano',
   oppBotEasy: 'bot — fácil',
   oppBotNormal: 'bot — normal',
@@ -915,8 +920,8 @@ const pt: Dict = {
   tutorDraw:
     'Sem jogada — clique no dorme (§8.2). Se a peça servir, você deve jogá-la; senão ela fica na mão e a vez passa.',
   tutorPass: 'Sem jogada e dorme vazio — a vez passa sozinha (§8.3).',
-  tutorOver:
-    'Jogo encerrado: pontua quem retém mais na mão (§10.3). Perde a partida quem chega a 100 (§10.5).',
+  tutorOver: (target) =>
+    `Jogo encerrado: pontua quem retém mais na mão (§10.3). Perde a partida quem chega a ${target} (§10.5).`,
   tutorPending:
     'Revise a jogada escolhida: coloque com o botão ou com outro clique na sombra; mudou de ideia — cancele ou escolha outra sombra.',
 
@@ -1064,6 +1069,7 @@ const zh: Dict = {
   tipRelayout: '重新排布枝条：摆放方式不影响规则（§6.3）',
   rootDeadTitle: '根牌死端——此侧不能接牌（§6.2）',
   fieldOpponent: '对手',
+  fieldTarget: '比赛至（分）',
   oppHuman: '真人',
   oppBotEasy: '电脑——简单',
   oppBotNormal: '电脑——普通',
@@ -1086,7 +1092,8 @@ const zh: Dict = {
   tutorDraw:
     '无牌可出——点击牌堆（§8.2）。摸到的牌可用就必须打出；不可用则留在手中，轮到对方。',
   tutorPass: '无牌可出且牌堆已空——自动跳过本轮（§8.3）。',
-  tutorOver: '本局结束：手中剩余点数多者得分（§10.3）。先到 100 分者输掉整场比赛（§10.5）。',
+  tutorOver: (target) =>
+    `本局结束：手中剩余点数多者得分（§10.3）。先到 ${target} 分者输掉整场比赛（§10.5）。`,
   tutorPending: '请核对所选走法：按按钮或再次点击虚影放牌；想换——取消或点击其他虚影。',
 
   versionWord: '版本',
@@ -1244,6 +1251,7 @@ const uk: Dict = {
   tipRelayout: 'Перекласти гілки по-іншому: розкладка на правила не впливає (§6.3)',
   rootDeadTitle: 'Глухий кут кореня — з цього боку кістки не ставляться (§6.2)',
   fieldOpponent: 'Суперник',
+  fieldTarget: 'Матч до',
   oppHuman: 'людина',
   oppBotEasy: 'бот — легкий',
   oppBotNormal: 'бот — звичайний',
@@ -1270,8 +1278,8 @@ const uk: Dict = {
   tutorDraw:
     'Ходити нічим — клікніть купу базару (§8.2). Кістка підійде — зобов’язані сходити нею; ні — залишиться в руці, хід перейде.',
   tutorPass: 'Ходити нічим, базар порожній — хід пропускається сам (§8.3).',
-  tutorOver:
-    'Партію закінчено: очки отримує той, у кого сума на руках більша (§10.3). Матч програє той, хто набере 100 (§10.5).',
+  tutorOver: (target) =>
+    `Партію закінчено: очки отримує той, у кого сума на руках більша (§10.3). Матч програє той, хто набере ${target} (§10.5).`,
   tutorPending:
     'Перевірте обраний хід: поставити — кнопкою або повторним кліком по тіні; передумали — скасуйте чи оберіть іншу тінь.',
 

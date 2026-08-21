@@ -17,7 +17,7 @@
 import { applyMoveTrusted, legalMoves, placementsForTile } from './rules';
 import { hasValue, isDouble, type TileId } from './tiles';
 import { handSum, scoreRound } from './score';
-import type { GameState, Move } from './state';
+import { matchTarget, type GameState, type Move } from './state';
 
 export type BotLevel = 'easy' | 'normal' | 'strong';
 
@@ -52,7 +52,7 @@ export function chooseBotMove(state: GameState, opts: BotOptions = {}): Move {
 
   const me = state.current;
   const totals = opts.totals ?? [0, 0];
-  const ctx: Ctx = { me, totals, budget: cfg.budget };
+  const ctx: Ctx = { me, totals, target: matchTarget(state.variant), budget: cfg.budget };
 
   // Честность §3.2–3.3: рука соперника ещё закрыта — выбор корня из
   // нескольких дублей делаем только по собственной руке, без перебора.
@@ -85,6 +85,8 @@ export function chooseBotMove(state: GameState, opts: BotOptions = {}): Move {
 interface Ctx {
   readonly me: 0 | 1;
   readonly totals: readonly [number, number];
+  /** Цель матча (§10.5) — константа поиска, как и totals. */
+  readonly target: number;
   budget: number;
 }
 
@@ -191,7 +193,7 @@ function terminalValue(state: GameState, ctx: Ctx): number {
   let v = (result.added[opp]! - result.added[me]!) * TERMINAL_SCALE;
   const tMe = ctx.totals[me]! + result.added[me]!;
   const tOpp = ctx.totals[opp]! + result.added[opp]!;
-  if (tMe >= 100 || tOpp >= 100) {
+  if (tMe >= ctx.target || tOpp >= ctx.target) {
     if (tOpp > tMe) v += WIN;
     else if (tMe > tOpp) v -= WIN;
   }
