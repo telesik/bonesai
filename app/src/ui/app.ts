@@ -803,7 +803,12 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     elStatusPrompt.innerHTML = prompt;
     elBtnFit.classList.toggle('active', board.isAutoFit());
     // Кнопка перекладки веток осмысленна, только когда есть повороты.
-    elBtnRelayout.hidden = !round.placed.some((p) => p.kind === 'turn');
+    // В сетевом матче ручной перекладки нет вовсе (идея 0005, решение
+    // автора): раскладка локальна и партнёру не передаётся, поэтому
+    // перестройка по прихоти одного разводит столы двух устройств —
+    // сидящий рядом живой партнёр теряется, «это не спортивно».
+    // Hot-seat и бот не в счёт — там экран один.
+    elBtnRelayout.hidden = remoteSeat !== null || !round.placed.some((p) => p.kind === 'turn');
   }
 
   // Формулировки без глаголов прошедшего времени: имена игроков любого рода.
@@ -2055,7 +2060,8 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   // Ручная перекладка веток: другая валидная раскладка того же дерева (§6.3).
   let relayoutSalt = 0;
   elBtnRelayout.addEventListener('click', () => {
-    if (!match || replay || match.round.phase === 'over') return;
+    // remoteSeat — страховка: в сетевом матче кнопка и так скрыта (идея 0005).
+    if (!match || replay || remoteSeat !== null || match.round.phase === 'over') return;
     const next = shuffleLayout(match.round, ++relayoutSalt);
     if (!next) return;
     match = { ...match, round: next };
