@@ -706,8 +706,8 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     deriveSelection(round, legal);
     ensurePileSprites();
     renderTopbar(round);
-    // В ход бота руки и куча не приглашают к действию: без классов
-    // playable/can-draw — кликать всё равно нельзя.
+    // В чужой ход (бот или удалённый соперник) руки и куча не приглашают
+    // к действию: без классов playable/can-draw — кликать всё равно нельзя.
     const legalUi = notMyTurn() ? [] : legal;
     renderHand(0, round, legalUi);
     renderHand(1, round, legalUi);
@@ -723,7 +723,8 @@ export function initApp(opts: AppOptions = {}): AppHandle {
 
   function deriveSelection(round: GameState, legal: readonly Move[]): void {
     if (round.phase === 'over' || notMyTurn()) {
-      // В ход бота человеку нечего выбирать: без выделения, без призраков.
+      // В чужой ход (бот или удалённый соперник) человеку нечего выбирать:
+      // без выделения, без призраков.
       selected = null;
       if (round.phase === 'over') return;
       if (pending) pending = null;
@@ -790,6 +791,9 @@ export function initApp(opts: AppOptions = {}): AppHandle {
     }
     const name = `<b>${esc(nameOf(round.current))}</b>`;
     if (notMyTurn()) {
+      // Несмотря на имя ключа, текст обязан оставаться нейтральным
+      // («Имя: думает…»): этой строкой ждут и бота, и живого соперника
+      // BLE-матча (remoteSeat). «Бот» словом — только в tutorText.
       return { event, prompt: L().statusBotThinking(name) };
     }
     if (round.phase === 'root') {
@@ -990,7 +994,10 @@ export function initApp(opts: AppOptions = {}): AppHandle {
   /** Подсказка режима обучения: что сейчас можно сделать и как. */
   function tutorText(round: GameState, legal: readonly Move[]): string {
     if (round.phase === 'over') return L().tutorOver;
-    if (notMyTurn()) return L().tutorBotTurn;
+    // Ход не человека за этим экраном: бот думает сам, а за удалённым
+    // местом (BLE-матч) сидит живой игрок — «ботом» его не называть.
+    if (botsTurnNow()) return L().tutorBotTurn;
+    if (notMyTurn()) return L().tutorRemoteTurn;
     if (pending) return L().tutorPending;
     if (round.phase === 'root') {
       if (round.mustPlay) return L().tutorRootMustPlay;
